@@ -16,9 +16,4 @@ struct Instruction{
     uint8_t size;               // Total size in bytes when reassembled
 };
 
-
-int encode_instruction(const Instruction* inst, uint8_t* out);
-int decode_instruction(const uint8_t* code, Instruction* out);
-
-
 #endif  // INSTRUCTION_H
