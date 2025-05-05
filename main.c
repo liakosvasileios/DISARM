@@ -5,6 +5,6 @@
 
 int main() {
     
-    printf("S3gM0rph starting...\n");
+    printf("morpher starting...\n");
     return 0;
 }
