@@ -7,5 +7,4 @@
 int encode_instruction(const struct Instruction* inst, uint8_t* out);
 int decode_instruction(const uint8_t* code, struct Instruction* out);
 
-
 #endif  // ENGINE_H
