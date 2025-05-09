@@ -15,14 +15,18 @@ all: $(OUT)
 $(OUT): $(SRC)
 	$(CC) $(CFLAGS) $(SRC) -o $(OUT)
 
-test: $(TEST_OUT)
+test-decode: $(TEST_OUT)
 	$(TEST_OUT)
 
 $(TEST_OUT): $(TEST_SRC)
 	$(CC) $(CFLAGS) $(TEST_SRC) -o $(TEST_OUT)
 
+test-mutate:
+	gcc -Wall -Wextra -Iinclude src/decode.c src/mutate.c test/test_mutate.c -o build/test_mutate.exe
+	./build/test_mutate.exe
+
 clean:
 	@echo Cleaning build...
-	-del /Q build\*.exe 2>nul || true
+	@rm -f build/*.exe
 
 .PHONY: all test clean
