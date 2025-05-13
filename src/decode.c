@@ -40,15 +40,15 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         out->opcode = 0xB8;
         out->operand_type = OPERAND_REG | OPERAND_IMM;
 
-        uint8_t reg = opcode - 0xB8;   // Encoded register number
-
-        if (out->rex & 0x01)  // REX.B bit extends reg
+        uint8_t reg = opcode - 0xB8;
+        if (out->rex & 0x01)  // REX.B
             reg |= 0x08;
-
         out->op1 = reg;
+
         out->imm = *((uint32_t*)&code[offset]);
-        out->size = offset + 4;
-        return out->size;
+        offset += 8;  // corrent size of imm
+        out->size = offset;
+        return offset;
     }
 
     // MOV r/m64, r64: 89 /r
@@ -156,6 +156,18 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         return out->size;
     }
 
+    // mov [rsp], imm32 — C7 04 24 <imm32>
+    else if (opcode == 0xC7 && code[offset] == 0x04 && code[offset + 1] == 0x24) {
+        offset += 2; // skip ModRM and SIB
+        out->opcode = 0xC7;
+        out->operand_type = OPERAND_MEM | OPERAND_IMM;
+        out->op1 = RSP_REG;
+        out->imm = *((uint32_t*)&code[offset]);
+        offset += 4;
+        out->size = offset;
+        return offset;
+    }
+
     // Unknown/unsupported instruction
     return -1;
 }
@@ -184,8 +196,9 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
     // mov reg, imm32/imm64: B8+rd - NOTE: in 64-bit mode, immediate is sign-extended
     if (inst->opcode == 0xB8 && inst->operand_type == (OPERAND_REG | OPERAND_IMM)) {
         out[offset++] = 0xB8 + (inst->op1 & 0x07); // Base opcode + lower 3 bits of reg
-        *((uint32_t*)&out[offset]) = inst->imm;    // 32-bit immediate (sign-extended to 64)
-        offset += 4;
+        uint64_t imm64 = (uint64_t)(uint32_t)(inst->imm); // zero-extend
+        memcpy(&out[offset], &imm64, 8);
+        offset += 8;
         return offset;
     }
 
@@ -195,7 +208,7 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
 
         // Encode ModR/M byte: mod=11 for register-direct (simple case)
         out[offset++] = 0xC0 | ((inst->op2 & 0x07) << 3) | (inst->op1 & 0x07);
-        return offset;
+        return offset;  
     }
 
     // MOV r64, r/m64 (8B /r)

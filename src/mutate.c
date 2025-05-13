@@ -44,17 +44,22 @@ void mutate_opcode(struct Instruction *inst) {
         }
     }
 
-    // ADD RAX, imm -> SUB RAX, -imm
-    else if (inst->opcode == 0x05 && inst->operand_type == (OPERAND_REG | OPERAND_IMM) && CHANCE(PERC)) {
-        inst->opcode = 0x2D;  // SUB EAX, imm32
-        inst->imm = -inst->imm;
-        // No need to change REX prefix - both use RAX
+    // ADD RAX, imm32 -> SUB RAX, -imm32
+    else if (inst->opcode == 0x05 &&
+            inst->operand_type == (OPERAND_REG | OPERAND_IMM) &&
+            inst->op1 == RAX_REG &&
+            CHANCE(PERC)) {
+        inst->opcode = 0x2D;  // SUB RAX, imm32
+        inst->imm = (~inst->imm + 1);  // Proper 2's complement negation
     }
 
-    // SUB reg, imm -> add reg, -imm
-    else if (inst->opcode == 0x2D && inst->operand_type == (OPERAND_REG | OPERAND_IMM) && CHANCE(PERC)) {
-        inst->opcode = 0x05;  // ADD EAX, imm32
-        inst->imm = -inst->imm;
+    // SUB RAX, imm32 -> ADD RAX, -imm32
+    else if (inst->opcode == 0x2D &&
+            inst->operand_type == (OPERAND_REG | OPERAND_IMM) &&
+            inst->op1 == RAX_REG &&
+            CHANCE(PERC)) {
+        inst->opcode = 0x05;  // ADD RAX, imm32
+        inst->imm = (~inst->imm + 1);  // Proper 2's complement negation
     }
     
     // xor reg, reg -> mov reg, 0
