@@ -44,6 +44,8 @@ input:
 	./test_binaries/generate_input
 
 deepfry:
+	@echo "[*] Mutating a clean output.bin..."
+	./build/transform.exe test_binaries/input.bin test_binaries/output.bin 1;
 	@echo "[*] Deepfrying output.bin $(n) times..."
 	@if [ -z "$(n)" ]; then \
 		echo "Usage: make deepfry n=5"; \
