@@ -1,3 +1,6 @@
 - Use `make all` for compiling the code. (No testing)
 - Use `make test-decode` to test the encoder-decoder with a round trip test. (Change the last argument of the `test` function to 1 *verbose* if you want to read the contents of the instructions encoded-decoded)
 - Use `make test-mutate` to test the mutations **manually**. 
+- Use `make transform` to test the transformer.
+- Use `./build/transform.exe test_binaries/input.bin test_binaries/output.bin` to mutate the input.bin file.
+- Use `make dump` to generate the dump files.
