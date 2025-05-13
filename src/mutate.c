@@ -1,4 +1,5 @@
 #include "mutate.h"
+#include "mba.h"
 
 /*
     Supported instrutions:
@@ -50,7 +51,8 @@ void mutate_opcode(struct Instruction *inst) {
             inst->op1 == RAX_REG &&
             CHANCE(PERC)) {
         inst->opcode = 0x2D;  // SUB RAX, imm32
-        inst->imm = (~inst->imm + 1);  // Proper 2's complement negation
+        int32_t immed = (~inst->imm + 1);  // Proper 2's complement negation
+        inst->imm =  obfuscate_mba_32(immed);  // MBA
     }
 
     // SUB RAX, imm32 -> ADD RAX, -imm32
@@ -59,7 +61,8 @@ void mutate_opcode(struct Instruction *inst) {
             inst->op1 == RAX_REG &&
             CHANCE(PERC)) {
         inst->opcode = 0x05;  // ADD RAX, imm32
-        inst->imm = (~inst->imm + 1);  // Proper 2's complement negation
+        int32_t immed = (~inst->imm + 1);  // Proper 2's complement negation
+        inst->imm = obfuscate_mba_32(immed);  // MBA
     }
     
     // xor reg, reg -> mov reg, 0
