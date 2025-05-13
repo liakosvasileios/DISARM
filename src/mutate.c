@@ -51,8 +51,7 @@ void mutate_opcode(struct Instruction *inst) {
             inst->op1 == RAX_REG &&
             CHANCE(PERC)) {
         inst->opcode = 0x2D;  // SUB RAX, imm32
-        int32_t immed = (~inst->imm + 1);  // Proper 2's complement negation
-        inst->imm =  obfuscate_mba_32(immed);  // MBA
+        inst->imm =  obfuscate_mba_32(~inst->imm + 1);  // MBA and Proper 2's complement negation
     }
 
     // SUB RAX, imm32 -> ADD RAX, -imm32
@@ -61,8 +60,7 @@ void mutate_opcode(struct Instruction *inst) {
             inst->op1 == RAX_REG &&
             CHANCE(PERC)) {
         inst->opcode = 0x05;  // ADD RAX, imm32
-        int32_t immed = (~inst->imm + 1);  // Proper 2's complement negation
-        inst->imm = obfuscate_mba_32(immed);  // MBA
+        inst->imm = obfuscate_mba_32(~inst->imm + 1);  // MBA and Proper 2's complement negation
     }
     
     // xor reg, reg -> mov reg, 0
@@ -115,7 +113,7 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
         mov_inst.opcode = 0xC7;         // IS mov [reg], imm32 HANDLED BY ENCODE/DECODE????? IF NOT ADD THIS BEFORE YOU RUN
         mov_inst.operand_type = OPERAND_MEM | OPERAND_IMM;
         mov_inst.op1 = RSP_REG;         // rsp
-        mov_inst.imm = input->imm;
+        mov_inst.imm = obfuscate_mba_32(input->imm);    // MBA 
         mov_inst.rex = 0x48;
 
         out_list[0] = sub_inst;
