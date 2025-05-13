@@ -51,7 +51,7 @@ void mutate_opcode(struct Instruction *inst) {
             inst->op1 == RAX_REG &&
             CHANCE(PERC)) {
         inst->opcode = 0x2D;  // SUB RAX, imm32
-        inst->imm =  obfuscate_mba_32(~inst->imm + 1);  // MBA and Proper 2's complement negation
+        inst->imm =  ~inst->imm + 1;  // Proper 2's complement negation
     }
 
     // SUB RAX, imm32 -> ADD RAX, -imm32
@@ -60,7 +60,7 @@ void mutate_opcode(struct Instruction *inst) {
             inst->op1 == RAX_REG &&
             CHANCE(PERC)) {
         inst->opcode = 0x05;  // ADD RAX, imm32
-        inst->imm = obfuscate_mba_32(~inst->imm + 1);  // MBA and Proper 2's complement negation
+        inst->imm = ~inst->imm + 1;  // Proper 2's complement negation
     }
     
     // xor reg, reg -> mov reg, 0
@@ -113,7 +113,7 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
         mov_inst.opcode = 0xC7;         // IS mov [reg], imm32 HANDLED BY ENCODE/DECODE????? IF NOT ADD THIS BEFORE YOU RUN
         mov_inst.operand_type = OPERAND_MEM | OPERAND_IMM;
         mov_inst.op1 = RSP_REG;         // rsp
-        mov_inst.imm = obfuscate_mba_32(input->imm);    // MBA 
+        mov_inst.imm = input->imm;   
         mov_inst.rex = 0x48;
 
         out_list[0] = sub_inst;
@@ -148,6 +148,121 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
 
         return 3;
 
+    }
+
+    // add rax, imm32 => xor decomposition (MBA): mov rcx, imm^mask; xor rcx, mask; add rax, rcx
+    if (input->opcode == 0x05 && input->operand_type == (OPERAND_REG | OPERAND_IMM) && input->op1 == RAX_REG && CHANCE(PERC)) {
+        if (max_count < 3) return 0;  // ensure space
+
+        uint32_t mask = rand();
+        uint32_t encoded = input->imm ^ mask;
+
+        struct Instruction mov_temp = {0};
+        struct Instruction xor_temp = {0};
+        struct Instruction add_target = {0};
+
+        // mov rcx, encoded
+        mov_temp.opcode = 0xB8;
+        mov_temp.operand_type = OPERAND_REG | OPERAND_IMM;
+        mov_temp.op1 = RCX_REG;
+        mov_temp.imm = encoded;
+        mov_temp.rex = 0x48;
+
+        // xor rcx, mask
+        xor_temp.opcode = 0x81;
+        xor_temp.operand_type = OPERAND_REG | OPERAND_IMM;
+        xor_temp.op1 = RCX_REG;
+        xor_temp.imm = mask;
+        xor_temp.rex = 0x48;
+
+        // add rax, rcx
+        add_target.opcode = 0x01;
+        add_target.operand_type = OPERAND_REG | OPERAND_REG;
+        add_target.op1 = RAX_REG;
+        add_target.op2 = RCX_REG;
+        add_target.rex = 0x48;
+
+        out_list[0] = mov_temp;
+        out_list[1] = xor_temp;
+        out_list[2] = add_target;
+
+        return 3;
+    }
+
+    // sub rax, imm32 => MBA: mov rcx, imm^mask; xor rcx, mask; sub rax, rcx
+    if (input->opcode == 0x2D &&
+        input->operand_type == (OPERAND_REG | OPERAND_IMM) &&
+        input->op1 == RAX_REG &&
+        CHANCE(PERC)) {
+
+        if (max_count < 3) return 0;
+
+        uint32_t mask = rand();
+        uint32_t encoded = input->imm ^ mask;
+
+        struct Instruction mov_temp = {0};
+        struct Instruction xor_temp = {0};
+        struct Instruction sub_target = {0};
+
+        // mov rcx, encoded
+        mov_temp.opcode = 0xB8;
+        mov_temp.operand_type = OPERAND_REG | OPERAND_IMM;
+        mov_temp.op1 = RCX_REG;
+        mov_temp.imm = encoded;
+        mov_temp.rex = 0x48;
+
+        // xor rcx, mask
+        xor_temp.opcode = 0x81;
+        xor_temp.operand_type = OPERAND_REG | OPERAND_IMM;
+        xor_temp.op1 = RCX_REG;
+        xor_temp.imm = mask;
+        xor_temp.rex = 0x48;
+
+        // sub rax, rcx
+        sub_target.opcode = 0x29;
+        sub_target.operand_type = OPERAND_REG | OPERAND_REG;
+        sub_target.op1 = RAX_REG;
+        sub_target.op2 = RCX_REG;
+        sub_target.rex = 0x48;
+
+        out_list[0] = mov_temp;
+        out_list[1] = xor_temp;
+        out_list[2] = sub_target;
+
+        return 3;
+    }
+
+    // mov reg, imm32 => MBA: mov reg, imm^mask; xor reg, mask
+    if (input->opcode == 0xB8 &&
+        input->operand_type == (OPERAND_REG | OPERAND_IMM) &&
+        CHANCE(PERC)) {
+
+        if (max_count < 2) return 0;
+
+        uint32_t mask = rand();
+        uint32_t encoded = input->imm ^ mask;
+
+        struct Instruction mov_inst = {0};
+        struct Instruction xor_inst = {0};
+
+        // mov reg, encoded
+        mov_inst.opcode = 0xB8;
+        mov_inst.operand_type = OPERAND_REG | OPERAND_IMM;
+        mov_inst.op1 = input->op1;
+        mov_inst.imm = encoded;
+        mov_inst.rex = 0x48;
+
+        // xor reg, mask
+        xor_inst.opcode = 0x81;
+        xor_inst.operand_type = OPERAND_REG | OPERAND_IMM;
+        xor_inst.op1 = input->op1;
+        xor_inst.imm = mask;
+        xor_inst.rex = 0x48;
+
+        out_list[0] = mov_inst;
+        out_list[1] = xor_inst;
+
+        return 2;
     }
 
     // Unsupported/Invalid Instruction

@@ -6,8 +6,8 @@
 #include "engine.h"
 #include "instruction.h" 
 #include <stdlib.h>     
+#include <string.h>
 
-uint64_t obfuscate_mba_64(uint64_t imm);
-uint32_t obfuscate_mba_32(uint32_t imm);
+void xor_decomposition(struct Instruction *out, int target_reg, int temp_reg, uint32_t imm);
 
 #endif // MBA_H

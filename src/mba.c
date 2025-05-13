@@ -1,15 +1,24 @@
 #include "mba.h"
 
-uint64_t obfuscate_mba_64(uint64_t imm) {
-    uint64_t mask = rand() | 1;     // Random mask
-    uint64_t x = (imm ^ mask);
-    // Result: ((x ^ mask) & 0xFFFFFFFF) == imm
-    return x;
+
+void xor_decomposition(struct Instruction *out, int target_reg, int temp_reg, uint32_t imm) {
+    uint32_t mask = rand();     // Random 64-bit value
+    uint32_t encoded = imm ^ mask;
+
+    memset(out, 0, sizeof(struct Instruction) * 3);
+
+    // mov temp_reg, encoded 
+    out[0].opcode = 0xB8;       // mov reg, imm
+    out[0].operand_type = OPERAND_REG | OPERAND_IMM;
+    out[0].op1 = temp_reg;
+    out[0].imm = encoded;
+    out[0].rex = 0x48;
+
+    // xor temp_reg, imm32
+    out[1].opcode = 0x81;                            // xor r/m64, imm32
+    out[1].operand_type = OPERAND_REG | OPERAND_IMM; // register + immediate
+    out[1].op1 = temp_reg;
+    out[1].imm = mask;
+    out[1].rex = 0x48;
 }
 
-uint32_t obfuscate_mba_32(uint32_t imm) {
-    uint32_t mask = rand() | 1;     // Random mask
-    uint32_t x = (imm ^ mask);
-    // Result: ((x ^ mask) & 0xFFFFFFFF) == imm
-    return x;
-}

@@ -88,6 +88,14 @@ int main(int argc, char *argv[]) {
                     total_written += len;
                 }
             }
+
+            int pad = decoded - total_written;
+            for (int i = 0; i < pad; i++) {
+                fputc(0x90, out); // NOP
+            }
+
+            offset += decoded;
+            continue; // SKIP mutate_opcode and original write
         } else {
             struct Instruction backup = inst;
             mutate_opcode(&inst);

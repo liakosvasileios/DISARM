@@ -18,7 +18,8 @@
         push imm32
         xchg reg, reg
         mov [reg], imm
-        **new**s
+        **new**
+        xor reg, imm
 */
 int decode_instruction(const uint8_t *code, struct Instruction *out) {
     int offset = 0;
@@ -168,6 +169,61 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         return offset;
     }
 
+    // xor r/m64, imm32
+    else if (opcode == 0x81) {
+        uint8_t modrm = code[offset++];
+        uint8_t reg_field = (modrm >> 3) & 0x07;    
+
+        if (reg_field == 6) { // /6 = XOR
+            uint8_t rm = modrm & 0x07;
+
+            if (out->rex & 0x01) rm |= 0x08;
+
+            out->opcode = 0x81;
+            out->operand_type = OPERAND_REG | OPERAND_IMM;
+            out->op1 = rm;
+            out->imm = *((uint32_t*)&code[offset]);
+            offset += 4;
+            out->size = offset;
+            return offset;
+        }
+    }
+
+    // ADD r/m64, r64 -> 01 /r
+    else if (opcode == 0x01) {
+        uint8_t modrm = code[offset++];
+        uint8_t reg = (modrm >> 3) & 0x07;
+        uint8_t rm = modrm & 0x07;
+
+        if (out->rex & 0x04) reg |= 0x08; // REX.R
+        if (out->rex & 0x01) rm  |= 0x08; // REX.B
+
+        out->opcode = 0x01;
+        out->operand_type = OPERAND_REG | OPERAND_REG;
+        out->op1 = rm;
+        out->op2 = reg;
+        out->size = offset;
+        return offset;
+    }
+
+    // SUB r/m64, r64 → 29 /r
+    else if (opcode == 0x29) {
+        uint8_t modrm = code[offset++];
+        uint8_t reg = (modrm >> 3) & 0x07;
+        uint8_t rm = modrm & 0x07;
+
+        if (out->rex & 0x04) reg |= 0x08; // REX.R
+        if (out->rex & 0x01) rm  |= 0x08; // REX.B
+
+        out->opcode = 0x29;
+        out->operand_type = OPERAND_REG | OPERAND_REG;
+        out->op1 = rm;   // destination
+        out->op2 = reg;  // source
+        out->size = offset;
+        return offset;
+    }
+
+
     // Unknown/unsupported instruction
     return -1;
 }
@@ -257,16 +313,51 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
     }
 
     // MOV [rsp], imm32: C7 04 24 <imm32>
-    else if (inst->opcode == 0xC7 &&
-        inst->operand_type == (OPERAND_MEM | OPERAND_IMM) &&
-        inst->op1 == RSP_REG) {
-    out[offset++] = 0xC7;        // Opcode
-    out[offset++] = 0x04;        // ModRM byte: mod=00, reg=000, r/m=100 (SIB)
-    out[offset++] = 0x24;        // SIB byte: scale=00, index=100 (none), base=100 (rsp)
-    *((uint32_t*)&out[offset]) = inst->imm; // imm32
-    offset += 4;
-    return offset;
+    else if (inst->opcode == 0xC7 && inst->operand_type == (OPERAND_MEM | OPERAND_IMM) && inst->op1 == RSP_REG) {
+        out[offset++] = 0xC7;        // Opcode
+        out[offset++] = 0x04;        // ModRM byte: mod=00, reg=000, r/m=100 (SIB)
+        out[offset++] = 0x24;        // SIB byte: scale=00, index=100 (none), base=100 (rsp)
+        *((uint32_t*)&out[offset]) = inst->imm; // imm32
+        offset += 4;
+        return offset;
     }
+
+    // XOR r/m64, imm32 -> REX.W + 81 /6 + imm32
+    else if (inst->opcode == 0x81 && inst->operand_type == (OPERAND_REG | OPERAND_IMM)) {
+
+        out[offset++] = 0x81;
+
+        // ModRM: mod=11 (register), reg=6 (XOR), r/m = reg
+        uint8_t modrm = 0xC0 | (6 << 3) | (inst->op1 & 0x07);
+        out[offset++] = modrm;
+
+        *((uint32_t*)&out[offset]) = inst->imm;
+        offset += 4;
+
+        return offset;
+    }
+
+    // ADD r/m64, r64 -> 01 /r
+    else if (inst->opcode == 0x01 && inst->operand_type == (OPERAND_REG | OPERAND_REG)) {
+        out[offset++] = 0x01;
+
+        uint8_t modrm = 0xC0 | ((inst->op2 & 0x07) << 3) | (inst->op1 & 0x07);
+        out[offset++] = modrm;
+
+        return offset;
+    }
+
+    // SUB r/m64, r64 → 29 /r
+    else if (inst->opcode == 0x29 &&
+            inst->operand_type == (OPERAND_REG | OPERAND_REG)) {
+        out[offset++] = 0x29;
+
+        uint8_t modrm = 0xC0 | ((inst->op2 & 0x07) << 3) | (inst->op1 & 0x07);
+        out[offset++] = modrm;
+
+        return offset;
+    }
+
 
     // Unknown/unsupported instruction
     return -1;

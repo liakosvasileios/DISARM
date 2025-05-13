@@ -90,11 +90,14 @@ int main() {
 
     // push imm32
     uint8_t push_imm[] = {0x68, 0x34, 0x12, 0x00, 0x00};
-    test("push imm32", push_imm, sizeof(push_imm), 1);
+    test("push imm32", push_imm, sizeof(push_imm), 0);
 
     // xchg rax, rbx
     uint8_t xchg_rax_rbx[] = {0x48, 0x87, 0xD8};
     test("xchg rax, rbx", xchg_rax_rbx, sizeof(xchg_rax_rbx), 0);
+
+    uint8_t xor_imm[] = { 0x48, 0x81, 0xF0, 0x78, 0x56, 0x34, 0x12 }; // xor rax, 0x12345678
+    test("xor m/r64, imm32", xchg_rax_rbx, sizeof(xchg_rax_rbx), 0);
 
     return 0;
 }
