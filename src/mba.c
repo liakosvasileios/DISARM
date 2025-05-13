@@ -2,6 +2,7 @@
 
 
 void xor_decomposition(struct Instruction *out, int target_reg, int temp_reg, uint32_t imm) {
+
     uint32_t mask = rand();     // Random 64-bit value
     uint32_t encoded = imm ^ mask;
 

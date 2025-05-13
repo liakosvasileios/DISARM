@@ -43,4 +43,17 @@ input:
 	gcc -Wall -Wextra -Iinclude -o test_binaries/generate_input test/generate_input.c
 	./test_binaries/generate_input
 
+deepfry:
+	@echo "[*] Deepfrying output.bin $(n) times..."
+	@if [ -z "$(n)" ]; then \
+		echo "Usage: make deepfry n=5"; \
+		exit 1; \
+	fi; \
+	for i in $(shell seq 1 $(n)); do \
+		echo "  → Pass $$i"; \
+		cp test_binaries/output.bin test_binaries/tmp_input.bin; \
+		./build/transform.exe test_binaries/tmp_input.bin test_binaries/output.bin 1; \
+	done; \
+	rm -f test_binaries/tmp_input.bin	
+
 .PHONY: all test clean

@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "engine.h"
 #include "mutate.h"
@@ -31,9 +32,16 @@ void print_instruction(const char *label, const struct Instruction *inst) {
 */
 
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <input.bin> <output.bin>\n", argv[0]);
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s <input.bin> <output.bin> <0=deterministic, 1=random>\n", argv[0]);
         return 1;
+    }
+
+    int randomize = atoi(argv[3]);
+    if (randomize) {
+        srand(time(NULL));
+    } else {
+        srand(1); // deterministic seed for testing
     }
 
     FILE *in = fopen(argv[1], "rb");
@@ -81,7 +89,7 @@ int main(int argc, char *argv[]) {
 
         if (count > 0) {
             for (int i = 0; i < count; i++) {
-                uint8_t encoded[MAX_INST_SIZE];
+                uint8_t encoded[MAX_INST_SIZE] = {0};
                 int len = encode_instruction(&mutated[i], encoded);
                 if (len > 0) {
                     fwrite(encoded, 1, len, out);
@@ -101,7 +109,7 @@ int main(int argc, char *argv[]) {
             mutate_opcode(&inst);
             int changed = memcmp(&inst, &backup, sizeof(struct Instruction)) != 0;
 
-            uint8_t encoded[MAX_INST_SIZE];
+            uint8_t encoded[MAX_INST_SIZE] = {0};
             int len = encode_instruction(changed ? &inst : &backup, encoded);
             if (len > 0) {
                 fwrite(encoded, 1, len, out);
