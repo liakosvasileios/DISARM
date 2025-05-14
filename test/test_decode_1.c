@@ -118,7 +118,10 @@ int main() {
     test("JL near +0x10", jl_near, sizeof(jl_near), 0);
 
     uint8_t test_al_al[] = {0x84, 0xC0};  // TEST AL, AL
-    test("test al, al", test_al_al, sizeof(test_al_al), 1);
+    test("test al, al (test r/m8, r8)", test_al_al, sizeof(test_al_al), 0);
+
+    uint8_t setne_al[] = {0x0F, 0x95, 0xC0};  // SETNE AL
+    test("setne al", setne_al, sizeof(setne_al), 0);
 
     return 0;
 }

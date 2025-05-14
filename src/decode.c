@@ -257,6 +257,22 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         return offset;
     }
 
+    // SETcc r8 → 0F 90 + cc /r
+    else if (opcode == 0x0F && (code[offset] >= 0x90 && code[offset] <= 0x9F)) {
+        uint8_t setcc = code[offset++];
+        uint8_t modrm = code[offset++];
+
+        if ((modrm & 0xC0) != 0xC0) return -1; // must be register form
+
+        uint8_t reg = modrm & 0x07;
+
+        out->opcode = 0x0F00 | setcc;
+        out->operand_type = OPERAND_REG;
+        out->op1 = reg;  // 8-bit register (e.g. AL_REG)
+        out->size = offset;
+        return offset;
+    }
+
     // Unknown/unsupported instruction
     return -1;
 }
@@ -413,6 +429,16 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
         out[offset++] = modrm;
         return offset;
     }
+
+    // SETcc r8 → 0F 90 + cc /r
+    else if ((inst->opcode & 0xFF00) == 0x0F00 && inst->operand_type == OPERAND_REG && ((inst->opcode & 0xF0) == 0x90)) {
+
+        out[offset++] = 0x0F;
+        out[offset++] = inst->opcode & 0xFF;
+        out[offset++] = 0xC0 | (inst->op1 & 0x07);
+        return offset;
+    }
+
 
     // Unknown/unsupported instruction
     return -1;
