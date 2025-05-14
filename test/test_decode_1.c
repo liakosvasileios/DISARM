@@ -9,8 +9,8 @@
 
 void print_instruction(const char *label, struct Instruction *inst) {
     printf("%s:\n", label);
-    printf("  Opcode:        0x%02X\n", inst->opcode);
-    printf("  Operand Type:  0x%02X\n", inst->operand_type);
+    printf("  Opcode:        0x%X\n", inst->opcode);
+    printf("  Operand Type:  0x%X\n", inst->operand_type);
     printf("  op1:           %u\n", inst->op1);
     printf("  op2:           %u\n", inst->op2);
     printf("  Immediate:     0x%X\n", inst->imm);
@@ -97,7 +97,25 @@ int main() {
     test("xchg rax, rbx", xchg_rax_rbx, sizeof(xchg_rax_rbx), 0);
 
     uint8_t xor_imm[] = { 0x48, 0x81, 0xF0, 0x78, 0x56, 0x34, 0x12 }; // xor rax, 0x12345678
-    test("xor m/r64, imm32", xchg_rax_rbx, sizeof(xchg_rax_rbx), 0);
+    test("xor m/r64, imm32", xor_imm, sizeof(xor_imm), 0);
+
+    uint8_t add_reg_reg[] = {0x48, 0x01, 0xC8};  // add [RAX <- RAX + RCX]
+    test("add rax, rcx", add_reg_reg, sizeof(add_reg_reg), 0);
+
+    uint8_t sub_reg_reg[] = {0x48, 0x29, 0xC8};  // sub [RAX <- RAX - RCX]
+    test("sub rax, rcx", sub_reg_reg, sizeof(sub_reg_reg), 0);
+
+    uint8_t jcc_short[] = {0x74, 0x02};  // JE short +2
+    test("JE short +2", jcc_short, sizeof(jcc_short), 0);
+
+    uint8_t jcc_near[] = {0x0F, 0x85, 0x78, 0x56, 0x34, 0x12};  // JNE +0x12345678
+    test("JNE near +0x12345678", jcc_near, sizeof(jcc_near), 0);
+
+    uint8_t jnz_short[] = {0x75, 0x05};  // JNZ +5
+    test("JNZ short +5", jnz_short, sizeof(jnz_short), 0);
+
+    uint8_t jl_near[] = {0x0F, 0x8C, 0x10, 0x00, 0x00, 0x00};  // JL +0x10
+    test("JL near +0x10", jl_near, sizeof(jl_near), 0);
 
     return 0;
 }

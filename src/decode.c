@@ -223,6 +223,25 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         return offset;
     }
 
+    // Short jumps (Jcc rel8)
+    else if (opcode >= 0x70 && opcode <= 0x7F) {
+        out->opcode = opcode;
+        out->operand_type = OPERAND_IMM;
+        out->imm = (int8_t)code[offset++];      // Signed 8-bit offset
+        out->size = offset + 1;
+        return out->size;
+    }
+
+    // Near jumps (0F 8x rel32)
+    else if (opcode == 0x0F && (code[offset] >= 0x80 && code[offset] <= 0x8F)) {
+        uint8_t jcc = code[offset++];
+        out->opcode = 0x0F00 | jcc;
+        out->operand_type = OPERAND_IMM;
+        out->imm = *((int32_t*)&code[offset]);
+        offset += 4;
+        out->size = offset;
+        return out->size;
+    }
 
     // Unknown/unsupported instruction
     return -1;
@@ -348,8 +367,7 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
     }
 
     // SUB r/m64, r64 → 29 /r
-    else if (inst->opcode == 0x29 &&
-            inst->operand_type == (OPERAND_REG | OPERAND_REG)) {
+    else if (inst->opcode == 0x29 && inst->operand_type == (OPERAND_REG | OPERAND_REG)) {
         out[offset++] = 0x29;
 
         uint8_t modrm = 0xC0 | ((inst->op2 & 0x07) << 3) | (inst->op1 & 0x07);
@@ -358,6 +376,21 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
         return offset;
     }
 
+    // Short jumps
+    else if ((inst->opcode >= 0x70 && inst->opcode <= 0x7F) && inst->operand_type == OPERAND_IMM) {
+        out[offset++] = inst->opcode;
+        out[offset++] = (int8_t)inst->imm;
+        return offset;
+    }
+
+    // Near jumps
+    else if ((inst->opcode & 0xFF00) == 0x0F00 && inst->operand_type == OPERAND_IMM) {
+        out[offset++] = 0x0F;
+        out[offset++] = inst->opcode & 0xFF;
+        *((int32_t*)&out[offset]) = inst->imm;
+        offset += 4;
+        return offset;
+    }
 
     // Unknown/unsupported instruction
     return -1;
