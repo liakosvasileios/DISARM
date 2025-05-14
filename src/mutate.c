@@ -1,5 +1,6 @@
 #include "mutate.h"
 #include "mba.h"
+#include <stdio.h>
 
 /*
     Supported instrutions:
@@ -12,6 +13,29 @@
         xchg reg, reg2 => xor reg, reg2 ; xor reg2, reg ; xor reg, reg2
         **new**
 */
+
+// Jcc 0x80–0x8F → SETcc 0x90–0x9F
+uint8_t jcc_to_setcc(uint8_t jcc) {
+    static const uint8_t map[16] = {
+        0x90, // JO   -> SETO
+        0x91, // JNO  -> SETNO
+        0x92, // JB   -> SETB
+        0x93, // JNB  -> SETAE
+        0x94, // JE   -> SETE
+        0x95, // JNE  -> SETNE
+        0x96, // JBE  -> SETBE
+        0x97, // JA   -> SETA
+        0x98, // JS   -> SETS
+        0x99, // JNS  -> SETNS
+        0x9A, // JP   -> SETP
+        0x9B, // JNP  -> SETNP
+        0x9C, // JL   -> SETL
+        0x9D, // JGE  -> SETGE
+        0x9E, // JLE  -> SETLE
+        0x9F  // JG   -> SETG
+    };
+    return map[jcc & 0x0F];  // only bottom 4 bits used
+}
 
 void mutate_opcode(struct Instruction *inst) {
 
@@ -270,13 +294,16 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
         if (max_count < 4) return 0;
 
         uint8_t jcc = input->opcode & 0xFF;
-        uint8_t inverse_jcc = jcc ^ 0x01;  // flip lowest bit to get inverse (e.g. 0x84 <-> 0x85)
-        uint8_t setcc_opcode = 0x0F00 | inverse_jcc;
+        uint8_t inverse_jcc = jcc ^ 0x01;
+        uint16_t setcc_opcode = 0x0F00 | jcc_to_setcc(inverse_jcc);
+
 
         struct Instruction setcc = {0};
         setcc.opcode = setcc_opcode;
         setcc.operand_type = OPERAND_REG;
         setcc.op1 = AL_REG;
+
+        printf("\n\nsetcc_opcode: 0x%X\n\n", setcc_opcode);
 
         struct Instruction test = {0};
         test.opcode = 0x84;  // TEST r/m8, r8

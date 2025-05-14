@@ -277,6 +277,30 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
     return -1;
 }
 
+/*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+======================================== ENCODING ========================================
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*/
+
 // Encodes an Instruction into x86_64 machine code.
 // Returns the number of bytes written or -1 on error.
 int encode_instruction(const struct Instruction *inst, uint8_t *out) {
@@ -430,16 +454,22 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
         return offset;
     }
 
-    // SETcc r8 → 0F 90 + cc /r
-    else if ((inst->opcode & 0xFF00) == 0x0F00 && inst->operand_type == OPERAND_REG && ((inst->opcode & 0xF0) == 0x90)) {
-
+    // SETcc r8 → 0F 90–9F /r
+    else if ((inst->opcode & 0xFF00) == 0x0F00 &&
+        (inst->opcode & 0xFF) >= 0x90 &&
+        (inst->opcode & 0xFF) <= 0x9F &&
+        inst->operand_type == OPERAND_REG)
+    {
+        printf("Inside SETcc\n");
         out[offset++] = 0x0F;
         out[offset++] = inst->opcode & 0xFF;
         out[offset++] = 0xC0 | (inst->op1 & 0x07);
         return offset;
     }
 
-
+    printf("ENCODE: SETcc 0x%X on reg %d -> 0F %02X C0\n", inst->opcode, inst->op1, inst->opcode & 0xFF);
+    printf("opcode & 0xFF00 = 0x%X\n", inst->opcode & 0xFF00);
+    
     // Unknown/unsupported instruction
     return -1;
 }
