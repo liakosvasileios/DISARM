@@ -303,8 +303,6 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
         setcc.operand_type = OPERAND_REG;
         setcc.op1 = AL_REG;
 
-        printf("\n\nsetcc_opcode: 0x%X\n\n", setcc_opcode);
-
         struct Instruction test = {0};
         test.opcode = 0x84;  // TEST r/m8, r8
         test.operand_type = OPERAND_REG | OPERAND_REG;

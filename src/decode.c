@@ -460,15 +460,11 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
         (inst->opcode & 0xFF) <= 0x9F &&
         inst->operand_type == OPERAND_REG)
     {
-        printf("Inside SETcc\n");
         out[offset++] = 0x0F;
         out[offset++] = inst->opcode & 0xFF;
         out[offset++] = 0xC0 | (inst->op1 & 0x07);
         return offset;
     }
-
-    printf("ENCODE: SETcc 0x%X on reg %d -> 0F %02X C0\n", inst->opcode, inst->op1, inst->opcode & 0xFF);
-    printf("opcode & 0xFF00 = 0x%X\n", inst->opcode & 0xFF00);
     
     // Unknown/unsupported instruction
     return -1;
