@@ -117,5 +117,8 @@ int main() {
     uint8_t jl_near[] = {0x0F, 0x8C, 0x10, 0x00, 0x00, 0x00};  // JL +0x10
     test("JL near +0x10", jl_near, sizeof(jl_near), 0);
 
+    uint8_t test_al_al[] = {0x84, 0xC0};  // TEST AL, AL
+    test("test al, al", test_al_al, sizeof(test_al_al), 1);
+
     return 0;
 }

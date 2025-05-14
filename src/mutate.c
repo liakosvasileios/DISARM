@@ -265,6 +265,44 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
         return 2;
     }
 
+        // Jcc near (0F 8x) => SET!cc + TEST + JNZ + JMP
+    if ((input->opcode & 0xFF00) == 0x0F00 && input->operand_type == OPERAND_IMM && CHANCE(PERC)) {
+        if (max_count < 4) return 0;
+
+        uint8_t jcc = input->opcode & 0xFF;
+        uint8_t inverse_jcc = jcc ^ 0x01;  // flip lowest bit to get inverse (e.g. 0x84 <-> 0x85)
+        uint8_t setcc_opcode = 0x0F00 | inverse_jcc;
+
+        struct Instruction setcc = {0};
+        setcc.opcode = setcc_opcode;
+        setcc.operand_type = OPERAND_REG;
+        setcc.op1 = AL_REG;
+
+        struct Instruction test = {0};
+        test.opcode = 0x84;  // TEST r/m8, r8
+        test.operand_type = OPERAND_REG | OPERAND_REG;
+        test.op1 = AL_REG;
+        test.op2 = AL_REG;
+
+        struct Instruction jnz = {0};
+        jnz.opcode = 0x0F85;  // JNZ (a.k.a. JNE)
+        jnz.operand_type = OPERAND_IMM;
+        jnz.imm = 5;  // size of JMP below
+
+        struct Instruction jmp = {0};
+        jmp.opcode = 0xE9;  // JMP rel32
+        jmp.operand_type = OPERAND_IMM;
+        jmp.imm = input->imm;
+
+        out_list[0] = setcc;
+        out_list[1] = test;
+        out_list[2] = jnz;
+        out_list[3] = jmp;
+
+        return 4;
+    }
+
+
     // Unsupported/Invalid Instruction
     return 0;   
 }

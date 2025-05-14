@@ -243,6 +243,20 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         return out->size;
     }
 
+    // TEST r/m8, r8
+    else if (opcode == 0x84) {
+        uint8_t modrm = code[offset++];
+        uint8_t reg = (modrm >> 3) & 0x07;
+        uint8_t rm = (modrm & 0x07);
+
+        out->opcode = 0x84;
+        out->operand_type = OPERAND_REG | OPERAND_REG;
+        out->op1 = rm;
+        out->op2 = reg;
+        out->size = offset;
+        return offset;
+    }
+
     // Unknown/unsupported instruction
     return -1;
 }
@@ -389,6 +403,14 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
         out[offset++] = inst->opcode & 0xFF;
         *((int32_t*)&out[offset]) = inst->imm;
         offset += 4;
+        return offset;
+    }
+
+    // TEST r/m8, r8 -> 84 /r
+    else if (inst->opcode == 0x84 && inst->operand_type == (OPERAND_REG | OPERAND_REG)) {
+        out[offset++] = 0x84;
+        uint8_t modrm = 0xC0 | ((inst->op2 & 0x07) << 3) | (inst->op1 & 0x07);
+        out[offset++] = modrm;
         return offset;
     }
 
