@@ -6,7 +6,7 @@ SRC = main.c src/decode.c
 TEST_SRC = src/decode.c test/test_decode_1.c 
 
 # Output binaries
-OUT = build/S3gM0rph.exe
+OUT = build/morpher.exe
 TEST_OUT = build/test_decode_1.exe
 
 # Default target

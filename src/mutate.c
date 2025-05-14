@@ -100,21 +100,21 @@ void mutate_opcode(struct Instruction *inst) {
     // xchg reg, reg -> xor swap trick
    
 
-    // Optional: operand flip (only if both are regs)
-    if ((inst->operand_type == (OPERAND_REG | OPERAND_REG)) && CHANCE(PERC)) {
-        uint8_t tmp = inst->op1;
-        inst->op1 = inst->op2;
-        inst->op2 = tmp;
+    // // Optional: operand flip (only if both are regs)
+    // if ((inst->operand_type == (OPERAND_REG | OPERAND_REG)) && CHANCE(PERC)) {
+    //     uint8_t tmp = inst->op1;
+    //     inst->op1 = inst->op2;
+    //     inst->op2 = tmp;
         
-        // Swap REX.R and REX.B bits if both are extended registers
-        if (inst->rex && (inst->op1 >= 8 || inst->op2 >= 8)) {
-            uint8_t rex_r = (inst->rex & 0x04); // Extract REX.R
-            uint8_t rex_b = (inst->rex & 0x01); // Extract REX.B
+    //     // Swap REX.R and REX.B bits if both are extended registers
+    //     if (inst->rex && (inst->op1 >= 8 || inst->op2 >= 8)) {
+    //         uint8_t rex_r = (inst->rex & 0x04); // Extract REX.R
+    //         uint8_t rex_b = (inst->rex & 0x01); // Extract REX.B
             
-            // Swap REX.R and REX.B bits
-            inst->rex = (inst->rex & 0xFA) | (rex_b << 2) | (rex_r >> 2);
-        }
-    }
+    //         // Swap REX.R and REX.B bits
+    //         inst->rex = (inst->rex & 0xFA) | (rex_b << 2) | (rex_r >> 2);
+    //     }
+    // }
 }
 
 int mutate_multi(const struct Instruction *input, struct Instruction *out_list, int max_count) {
