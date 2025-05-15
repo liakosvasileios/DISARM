@@ -34,10 +34,10 @@ clean:
 
 dump: 
 	@echo "[*] Disassembly of original input:"
-	@objdump -D -b binary -m i386:x86-64 test_binaries/input.bin | head -n 40
+	@objdump -D -b binary -m i386:x86-64 test_binaries/input.bin | head -n 100
 	@echo ""
 	@echo "[*] Disassembly of transformed output:"
-	@objdump -D -b binary -m i386:x86-64 test_binaries/output.bin | head -n 40
+	@objdump -D -b binary -m i386:x86-64 test_binaries/output.bin | head -n 100
 
 input: 
 	gcc -Wall -Wextra -Iinclude -o test_binaries/generate_input test/generate_input.c

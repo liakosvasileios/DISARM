@@ -1,11 +1,7 @@
-#include <stdint.h>
 #include <string.h>
 #include <stdio.h>  
-
-#include "registers.h"
-#include "operand_type.h"
 #include "engine.h"
-#include "instruction.h"  
+#include "isa.h"  
 
 /*
     Supported instrutions:

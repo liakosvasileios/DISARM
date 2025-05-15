@@ -1,11 +1,9 @@
 #include <stdio.h>
-#include <stdint.h>
 #include <string.h>
 #include <assert.h>
 
 #include "engine.h"
-#include "operand_type.h"
-#include "registers.h"
+#include "isa.h"
 
 void print_instruction(const char *label, struct Instruction *inst) {
     printf("%s:\n", label);

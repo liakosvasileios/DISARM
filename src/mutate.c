@@ -1,6 +1,7 @@
 #include "mutate.h"
 #include "mba.h"
 #include <stdio.h>
+#include "patterns.h"
 
 /*
     Supported instrutions:
@@ -37,91 +38,56 @@ uint8_t jcc_to_setcc(uint8_t jcc) {
     return map[jcc & 0x0F];  // only bottom 4 bits used
 }
 
-void mutate_opcode(struct Instruction *inst) {
-
-    // mov reg, 0 => xor reg, reg
-    if (inst->opcode == 0xB8 && inst->imm == 0 && CHANCE(PERC)) {
+// mov reg, 0 => xor reg, reg
+static int mutate_mov_reg_0(struct Instruction *inst) {
+    if (IS_MOV_REG_0(inst) && CHANCE(PERC)) {
         inst->opcode = 0x31;    // xor reg, reg
         inst->operand_type = OPERAND_REG | OPERAND_REG;
         inst->op2 = inst->op1;
         inst->rex |= 0x08;      // ensure 64-bit mode
+        return 1;
     }
+    return 0;
+}
 
-    // Mutate mov r/m64, r64 -> mov r64, r/m64
-    else if (inst->opcode == 0x89 && inst->operand_type == (OPERAND_MEM | OPERAND_REG)) {
-        if (CHANCE(PERC)) {
-            inst->opcode = 0x8B;    // mov r64, r/m64
-            inst->operand_type = OPERAND_REG | OPERAND_MEM;
+// mov r/m64, r64 -> mov r64, r/m64
+static int mutate_mov_rm64_r64(struct Instruction *inst) {
+    if (IS_MOV_RM_REG(inst) && CHANCE(PERC)) {
+        inst->opcode = 0x8B;    // mov r64, r/m64
+        inst->operand_type = OPERAND_REG | OPERAND_MEM;
+        
+        // Swap operands
+        uint8_t tmp = inst->op1;
+        inst->op1 = inst->op2;
+        inst->op2 = tmp;
+        
+        // Handle REX bits for swapped operands
+        if (inst->rex) {
+            uint8_t rex_r = (inst->rex & 0x04); // Extract REX.R
+            uint8_t rex_b = (inst->rex & 0x01); // Extract REX.B
             
-            // Swap operands
-            uint8_t tmp = inst->op1;
-            inst->op1 = inst->op2;
-            inst->op2 = tmp;
-            
-            // Handle REX bits for swapped operands
-            if (inst->rex) {
-                uint8_t rex_r = (inst->rex & 0x04); // Extract REX.R
-                uint8_t rex_b = (inst->rex & 0x01); // Extract REX.B
-                
-                // Swap REX.R and REX.B bits
-                inst->rex = (inst->rex & 0xFA) | (rex_b << 2) | (rex_r >> 2);
-            }
+            // Swap REX.R and REX.B bits
+            inst->rex = (inst->rex & 0xFA) | (rex_b << 2) | (rex_r >> 2);
         }
+        return 1;
     }
+    return 0;
+}
 
-    // ADD RAX, imm32 -> SUB RAX, -imm32
-    else if (inst->opcode == 0x05 &&
-            inst->operand_type == (OPERAND_REG | OPERAND_IMM) &&
-            inst->op1 == RAX_REG &&
-            CHANCE(PERC)) {
-        inst->opcode = 0x2D;  // SUB RAX, imm32
-        inst->imm =  ~inst->imm + 1;  // Proper 2's complement negation
-    }
-
-    // SUB RAX, imm32 -> ADD RAX, -imm32
-    else if (inst->opcode == 0x2D &&
-            inst->operand_type == (OPERAND_REG | OPERAND_IMM) &&
-            inst->op1 == RAX_REG &&
-            CHANCE(PERC)) {
-        inst->opcode = 0x05;  // ADD RAX, imm32
-        inst->imm = ~inst->imm + 1;  // Proper 2's complement negation
-    }
-    
-    // xor reg, reg -> mov reg, 0
-    else if (inst->opcode == 0x31 && inst->operand_type == (OPERAND_REG | OPERAND_REG) && CHANCE(PERC)) {
+// xor reg, reg -> mov reg, 0
+static int mutate_xor_reg_reg(struct Instruction *inst) {
+    if (IS_XOR_REG_REG(inst) && CHANCE(PERC)) {
         inst->opcode = 0xB8;    // mov reg, imm32
         inst->operand_type = OPERAND_REG | OPERAND_IMM;
         inst->imm = 0;
+        return 1;
     }
-
-    // push imm32 -> sub rsp, 8 ; mov [rsp], imm32
-    
-
-    // xchg reg, reg -> xor swap trick
-   
-
-    // // Optional: operand flip (only if both are regs)
-    // if ((inst->operand_type == (OPERAND_REG | OPERAND_REG)) && CHANCE(PERC)) {
-    //     uint8_t tmp = inst->op1;
-    //     inst->op1 = inst->op2;
-    //     inst->op2 = tmp;
-        
-    //     // Swap REX.R and REX.B bits if both are extended registers
-    //     if (inst->rex && (inst->op1 >= 8 || inst->op2 >= 8)) {
-    //         uint8_t rex_r = (inst->rex & 0x04); // Extract REX.R
-    //         uint8_t rex_b = (inst->rex & 0x01); // Extract REX.B
-            
-    //         // Swap REX.R and REX.B bits
-    //         inst->rex = (inst->rex & 0xFA) | (rex_b << 2) | (rex_r >> 2);
-    //     }
-    // }
+    return 0;
 }
 
-int mutate_multi(const struct Instruction *input, struct Instruction *out_list, int max_count) {
-    if (max_count < 3) return 0;    // We may need up to 3 slots
-
-    // push imm32 => sub rsp, 8; mov [rsp], imm32
-    if (input->opcode == 0x68 && input->operand_type == OPERAND_IMM && CHANCE(PERC)) {
+// push imm32 => sub rsp, 8; mov [rsp], imm32
+static int mutate_push_imm32(const struct Instruction *input, struct Instruction *out_list) {
+    if (IS_PUSH_IMM32(input) && CHANCE(PERC)) {
         // sub rsp, 8
         struct Instruction sub_inst;
         memset(&sub_inst, 0, sizeof(sub_inst));
@@ -144,9 +110,12 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
         out_list[1] = mov_inst;
         return 2;
     }
+    return 0;
+}
 
-    // xchg reg, reg -> xor swap trick
-    if (input->opcode == 0x87 && input->operand_type == (OPERAND_REG | OPERAND_REG) && CHANCE(PERC)) {
+// xchg reg, reg -> xor swap trick
+static int mutate_xchg_reg_reg(const struct Instruction *input, struct Instruction *out_list) {
+    if (IS_XCHG_REG_REG(input) && CHANCE(PERC)) {
         struct Instruction xor1, xor2, xor3;
         memset(&xor1, 0, sizeof(xor1));
         memset(&xor2, 0, sizeof(xor2));
@@ -171,14 +140,14 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
         out_list[2] = xor3;
 
         return 3;
-
     }
+    return 0;
+}
 
-    // add rax, imm32 => xor decomposition (MBA): mov rcx, imm^mask; xor rcx, mask; add rax, rcx
-    if (input->opcode == 0x05 && input->operand_type == (OPERAND_REG | OPERAND_IMM) && input->op1 == RAX_REG && CHANCE(PERC)) {
-        if (max_count < 3) return 0;  // ensure space
-
-        uint32_t mask = rand();
+// add rax, imm32 => xor decomposition (MBA): mov rcx, imm^mask; xor rcx, mask; add rax, rcx
+static int mutate_add_rax_imm32(const struct Instruction *input, struct Instruction *out_list) {
+    if (IS_ADD_RAX_IMM32(input) && CHANCE(PERC)) {
+        uint32_t mask = rand32();
         uint32_t encoded = input->imm ^ mask;
 
         struct Instruction mov_temp = {0};
@@ -212,16 +181,13 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
 
         return 3;
     }
+    return 0;
+}
 
-    // sub rax, imm32 => MBA: mov rcx, imm^mask; xor rcx, mask; sub rax, rcx
-    if (input->opcode == 0x2D &&
-        input->operand_type == (OPERAND_REG | OPERAND_IMM) &&
-        input->op1 == RAX_REG &&
-        CHANCE(PERC)) {
-
-        if (max_count < 3) return 0;
-
-        uint32_t mask = rand();
+// sub rax, imm32 => MBA: mov rcx, imm^mask; xor rcx, mask; sub rax, rcx
+static int mutate_sub_rax_imm32(const struct Instruction *input, struct Instruction *out_list) {
+    if (IS_SUB_RAX_IMM32(input) && CHANCE(PERC)) {
+        uint32_t mask = rand32();
         uint32_t encoded = input->imm ^ mask;
 
         struct Instruction mov_temp = {0};
@@ -255,14 +221,12 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
 
         return 3;
     }
+    return 0;
+}
 
-    // mov reg, imm32 => MBA: mov reg, imm^mask; xor reg, mask
-    if (input->opcode == 0xB8 &&
-        input->operand_type == (OPERAND_REG | OPERAND_IMM) &&
-        CHANCE(PERC)) {
-
-        if (max_count < 2) return 0;
-
+// mov reg, imm32 => MBA: mov reg, imm^mask; xor reg, mask
+static int mutate_mov_reg_imm32(const struct Instruction *input, struct Instruction *out_list) {
+    if (IS_MOV_REG_IMM32(input) && CHANCE(PERC)) {
         uint32_t mask = rand();
         uint32_t encoded = input->imm ^ mask;
 
@@ -288,10 +252,12 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
 
         return 2;
     }
+    return 0;
+}
 
-        // Jcc near (0F 8x) => SET!cc + TEST + JNZ + JMP
-    if ((input->opcode & 0xFF00) == 0x0F00 && input->operand_type == OPERAND_IMM && CHANCE(PERC)) {
-        if (max_count < 4) return 0;
+// Jcc near (0F 8x) => SET!cc + TEST + JNZ + JMP
+static int mutate_jcc_near(const struct Instruction *input, struct Instruction *out_list) {
+    if (IS_JCC_NEAR(input) && CHANCE(PERC)) {
 
         uint8_t jcc = input->opcode & 0xFF;
         uint8_t inverse_jcc = jcc ^ 0x01;
@@ -326,6 +292,43 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
 
         return 4;
     }
+    return 0;
+}
+
+void mutate_opcode(struct Instruction *inst) {
+
+    // mov reg, 0 => xor reg, reg
+    if (mutate_mov_reg_0(inst)) return;
+
+    // mov r/m64, r64 -> mov r64, r/m64
+    if (mutate_mov_rm64_r64(inst)) return;
+    
+    // xor reg, reg -> mov reg, 0
+    if (mutate_xor_reg_reg(inst)) return;
+
+}
+
+int mutate_multi(const struct Instruction *input, struct Instruction *out_list, int max_count) {
+    if (max_count < 4) return 0;    // We may need up to 4 slots
+
+    int n;
+    // push imm32 => sub rsp, 8; mov [rsp], imm32
+    if (n = mutate_push_imm32(input, out_list)) return n;
+
+    // xchg reg, reg -> xor swap trick
+    if (n = mutate_xchg_reg_reg(input, out_list)) return n;
+
+    // add rax, imm32 => xor decomposition (MBA): mov rcx, imm^mask; xor rcx, mask; add rax, rcx
+    if (n = mutate_add_rax_imm32(input, out_list)) return n;
+
+    // sub rax, imm32 => MBA: mov rcx, imm^mask; xor rcx, mask; sub rax, rcx
+    if (n = mutate_sub_rax_imm32(input, out_list)) return n;
+
+    // mov reg, imm32 => MBA: mov reg, imm^mask; xor reg, mask
+    if (n = mutate_mov_reg_imm32(input, out_list)) return n;
+
+    // Jcc near (0F 8x) => SET!cc + TEST + JNZ + JMP
+    if (n = mutate_jcc_near(input, out_list)) return n;
 
 
     // Unsupported/Invalid Instruction

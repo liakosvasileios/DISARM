@@ -4,9 +4,7 @@
 #include <stdlib.h>  
 #include <time.h>
 #include <string.h>
-#include "instruction.h"
-#include "operand_type.h"
-#include "registers.h"
+#include "isa.h"
 
 #define CHANCE(x) (rand() % 100 < (x))
 #define PERC 100

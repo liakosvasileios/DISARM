@@ -6,7 +6,7 @@
 
 #include "engine.h"
 #include "mutate.h"
-#include "instruction.h"
+#include "isa.h"
 
 #define MAX_INST_SIZE 15
 #define MAX_MUTATED 4
