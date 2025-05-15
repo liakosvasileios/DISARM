@@ -2,11 +2,11 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Iinclude
 
 # Source files
-SRC = main.c src/decoder.c src/encoder.c
+SRC = src/transformer.c src/mutate.c src/decoder.c src/encoder.c src/mba.c
 TEST_SRC = src/decoder.c src/encoder.c test/test_decode_1.c 
 
 # Output binaries
-OUT = build/morpher.exe
+OUT = build/transform
 TEST_OUT = build/test_decode_1.exe
 
 # Default target
@@ -22,11 +22,8 @@ $(TEST_OUT): $(TEST_SRC)
 	$(CC) $(CFLAGS) $(TEST_SRC) -o $(TEST_OUT)
 
 test-mutate:
-	gcc -Wall -Wextra -Iinclude src/instruction_codec.c src/mutate.c test/test_mutate.c -o build/test_mutate.exe
+	gcc -Wall -Wextra -Iinclude src/decoder.c src/encoder.c src/mutate.c test/test_mutate.c -o build/test_mutate.exe
 	./build/test_mutate.exe
-
-transform:
-	gcc -Wall -Wextra -Iinclude src/transformer.c src/mutate.c src/instruction_codec.c src/mba.c -o build/transform
 
 clean:
 	@echo Cleaning build...
