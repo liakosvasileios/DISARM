@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
-#include "instruction.h"
-#include "operand_type.h"
+#include "isa.h"
 
 int main() {
     

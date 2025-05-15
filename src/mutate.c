@@ -147,7 +147,7 @@ static int mutate_xchg_reg_reg(const struct Instruction *input, struct Instructi
 // add rax, imm32 => xor decomposition (MBA): mov rcx, imm^mask; xor rcx, mask; add rax, rcx
 static int mutate_add_rax_imm32(const struct Instruction *input, struct Instruction *out_list) {
     if (IS_ADD_RAX_IMM32(input) && CHANCE(PERC)) {
-        uint32_t mask = rand32();
+        uint32_t mask = rand();
         uint32_t encoded = input->imm ^ mask;
 
         struct Instruction mov_temp = {0};
@@ -187,7 +187,7 @@ static int mutate_add_rax_imm32(const struct Instruction *input, struct Instruct
 // sub rax, imm32 => MBA: mov rcx, imm^mask; xor rcx, mask; sub rax, rcx
 static int mutate_sub_rax_imm32(const struct Instruction *input, struct Instruction *out_list) {
     if (IS_SUB_RAX_IMM32(input) && CHANCE(PERC)) {
-        uint32_t mask = rand32();
+        uint32_t mask = rand();
         uint32_t encoded = input->imm ^ mask;
 
         struct Instruction mov_temp = {0};
@@ -313,22 +313,22 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
 
     int n;
     // push imm32 => sub rsp, 8; mov [rsp], imm32
-    if (n = mutate_push_imm32(input, out_list)) return n;
+    if ((n = mutate_push_imm32(input, out_list))) return n;
 
     // xchg reg, reg -> xor swap trick
-    if (n = mutate_xchg_reg_reg(input, out_list)) return n;
+    if ((n = mutate_xchg_reg_reg(input, out_list))) return n;
 
     // add rax, imm32 => xor decomposition (MBA): mov rcx, imm^mask; xor rcx, mask; add rax, rcx
-    if (n = mutate_add_rax_imm32(input, out_list)) return n;
+    if ((n = mutate_add_rax_imm32(input, out_list))) return n;
 
     // sub rax, imm32 => MBA: mov rcx, imm^mask; xor rcx, mask; sub rax, rcx
-    if (n = mutate_sub_rax_imm32(input, out_list)) return n;
+    if ((n = mutate_sub_rax_imm32(input, out_list))) return n;
 
     // mov reg, imm32 => MBA: mov reg, imm^mask; xor reg, mask
-    if (n = mutate_mov_reg_imm32(input, out_list)) return n;
+    if ((n = mutate_mov_reg_imm32(input, out_list))) return n;
 
     // Jcc near (0F 8x) => SET!cc + TEST + JNZ + JMP
-    if (n = mutate_jcc_near(input, out_list)) return n;
+    if ((n = mutate_jcc_near(input, out_list))) return n;
 
 
     // Unsupported/Invalid Instruction
