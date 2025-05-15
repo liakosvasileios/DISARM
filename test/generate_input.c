@@ -71,20 +71,20 @@ int main() {
         // JE short +2
         0x74, 0x02,
 
-        // JMP short (skip dummy instruction)
-        0xEB, 0x02,
+        // // JMP short (skip dummy instruction)
+        // 0xEB, 0x02,
 
-        // xor rcx, rcx
-        0x48, 0x31, 0xC9,
+        // // xor rcx, rcx
+        // 0x48, 0x31, 0xC9,
 
-        // JNE short +2
-        0x75, 0x02,
+        // // JNE short +2
+        // 0x75, 0x02,
 
-        // JMP short
-        0xEB, 0x02,
+        // // JMP short
+        // 0xEB, 0x02,
 
-        // TEST al, al
-        0x84, 0xC0
+        // // TEST al, al
+        // 0x84, 0xC0
     };
 
 

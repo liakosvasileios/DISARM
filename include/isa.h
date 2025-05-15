@@ -3,7 +3,10 @@
 
 #include <stdint.h>
 
+// ====================================================================================================
 // Instruction
+// ====================================================================================================
+
 struct Instruction{
     uint16_t opcode;             // Unique internal representation of the instrution opcode
     uint8_t operand_type;       // Operand types byte
@@ -17,6 +20,8 @@ struct Instruction{
 
 // ====================================================================================================
 // Operand Types
+// ====================================================================================================
+
 enum OperandType {
     OPERAND_NONE    = 0x00,     // No operand
     OPERAND_REG     = 0x01,     // Register
@@ -30,6 +35,8 @@ enum OperandType {
 
 // ====================================================================================================
 // Registers
+// ====================================================================================================
+
 enum Register64 {
     // 64-bit general purpose registers
     RAX_REG, RBX_REG, RCX_REG, RDX_REG,
@@ -64,5 +71,46 @@ enum Register8 {
      R8B_REG, R9B_REG, R10B_REG, R11B_REG,
      R12B_REG, R13B_REG, R14B_REG, R15B_REG
 };
+
+// ====================================================================================================
+// Opcodes
+// ====================================================================================================
+
+// MOV
+#define OPCODE_MOV_REG_IMM64  0xB8  // B8+rd    
+#define OPCODE_MOV_MEM_REG    0x89  // 89 /r
+#define OPCODE_MOV_REG_MEM    0x8B  // 8B /r
+#define OPCODE_MOV_MEM_IMM32  0xC7  // C7 04 24
+
+// ARITHMETIC
+#define OPCODE_ADD_RAX_IMM32  0x05  // 05 id
+#define OPCODE_SUB_RAX_IMM32  0x2D  // 2D id
+#define OPCODE_ADD_REG_REG    0x01  // 01 /r
+#define OPCODE_SUB_REG_REG    0x29  // 29 /r
+
+// LOGIC
+#define OPCODE_XOR_REG_REG    0x31  // 31 /r
+#define OPCODE_XOR_REG_IMM32  0x81  // 81 /6 id
+
+// PUSH/POP
+#define OPCODE_PUSH_IMM32     0x68  // 68 id
+
+// EXCHANGE
+#define OPCODE_XCHG_REG_REG   0x87  // 87 /r
+
+// TEST
+#define OPCODE_TEST_REG8_REG8 0x84  // 84 /r
+
+// CONDITIONAL JUMPS
+#define OPCODE_JCC_SHORT_MIN  0x70  // 70..7F
+#define OPCODE_JCC_SHORT_MAX  0x7F
+#define OPCODE_JCC_NEAR       0x0F  // 0F 8x
+
+// SETcc
+#define OPCODE_SETCC_BASE     0x90  // 0F 90..9F
+
+// UNCONDITIONAL JUMP
+#define OPCODE_JMP_REL32      0xE9
+#define OPCODE_JMP_REL8       0xEB
 
 #endif // ISA_H
