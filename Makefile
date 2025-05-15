@@ -2,8 +2,8 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Iinclude
 
 # Source files
-SRC = main.c src/decode.c
-TEST_SRC = src/decode.c test/test_decode_1.c 
+SRC = main.c src/instruction_codec.c
+TEST_SRC = src/instruction_codec.c test/test_decode_1.c 
 
 # Output binaries
 OUT = build/morpher.exe
