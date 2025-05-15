@@ -22,11 +22,11 @@ $(TEST_OUT): $(TEST_SRC)
 	$(CC) $(CFLAGS) $(TEST_SRC) -o $(TEST_OUT)
 
 test-mutate:
-	gcc -Wall -Wextra -Iinclude src/decode.c src/mutate.c test/test_mutate.c -o build/test_mutate.exe
+	gcc -Wall -Wextra -Iinclude src/instruction_codec.c src/mutate.c test/test_mutate.c -o build/test_mutate.exe
 	./build/test_mutate.exe
 
 transform:
-	gcc -Wall -Wextra -Iinclude src/transformer.c src/mutate.c src/decode.c src/mba.c -o build/transform
+	gcc -Wall -Wextra -Iinclude src/transformer.c src/mutate.c src/instruction_codec.c src/mba.c -o build/transform
 
 clean:
 	@echo Cleaning build...
