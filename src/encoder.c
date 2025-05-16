@@ -90,6 +90,14 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
             EMIT(ENCODE_MODRM(inst->op1, inst->op2));
             return offset;
 
+        case 0xFF:
+            if (inst->operand_type == OPERAND_MEM) {
+                EMIT(0xFF);
+                EMIT(ENCODE_MODRM(0, inst->op1));  // /2 = CALL, reg = 010b = 0
+                return offset;
+            }
+            break;
+
         // Jcc 
         default:
             if ((inst->opcode & 0xFF00) == 0x0F00) {

@@ -21,4 +21,6 @@
 
 #define IS_JCC_NEAR(inst) ((((inst)->opcode & 0xFF00) == 0x0F00) && ((inst)->operand_type == OPERAND_IMM))
 
+#define IS_CALL_REL32(inst) ((inst)->opcode == OPCODE_CALL_REL32 && (inst)->operand_type == OPERAND_IMM)
+
 #endif // PATTERNS_H

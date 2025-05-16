@@ -113,4 +113,8 @@ enum Register8 {
 #define OPCODE_JMP_REL32      0xE9
 #define OPCODE_JMP_REL8       0xEB
 
+// CALL
+#define OPCODE_CALL_REL32     0xE8  // E8 id
+#define OPCODE_CALL_RM64      0xFF  // FF /2
+
 #endif // ISA_H

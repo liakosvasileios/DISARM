@@ -295,6 +295,46 @@ static int mutate_jcc_near(const struct Instruction *input, struct Instruction *
     return 0;
 }
 
+static int mutate_call_virtual_dispatch(const struct Instruction *input, struct Instruction *out_list) {
+    if (IS_CALL_REL32(input) && CHANCE(PERC)) {
+        uint8_t vindex = rand() % 4;
+
+        // mov ecx, vindex
+        struct Instruction mov_ecx = {
+            .opcode = OPCODE_MOV_REG_IMM64,
+            .operand_type = OPERAND_REG | OPERAND_IMM,
+            .op1 = RCX_REG,
+            .imm = vindex,
+            .rex = 0x48
+        };
+
+        // mov rax, [rip+offset_to_table] or [dispatch_table + rcx*8]
+        // For now, emit fake value and patch later
+        struct Instruction mov_rax = {
+            .opcode = 0x8B,  // MOV r64, m64
+            .operand_type = OPERAND_REG | OPERAND_MEM,
+            .op1 = RAX_REG,
+            .op2 = RCX_REG,  // indirect via RCX
+            .rex = 0x48
+        };
+
+        // call rax
+        struct Instruction call_rax = {
+            .opcode = 0xFF,
+            .operand_type = OPERAND_MEM,
+            .op1 = RAX_REG,
+            .rex = 0x48
+        };
+
+        out_list[0] = mov_ecx;
+        out_list[1] = mov_rax;
+        out_list[2] = call_rax;
+
+        return 3;
+    }
+    return 0;
+}
+
 void mutate_opcode(struct Instruction *inst) {
 
     // mov reg, 0 => xor reg, reg
@@ -330,6 +370,8 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
     // Jcc near (0F 8x) => SET!cc + TEST + JNZ + JMP
     if ((n = mutate_jcc_near(input, out_list))) return n;
 
+    // Virtual Call
+    if ((n = mutate_virtual_call(input, out_list))) return n;
 
     // Unsupported/Invalid Instruction
     return 0;   

@@ -191,5 +191,14 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         }
     }
 
+    if (opcode == OPCODE_CALL_REL32) {
+        out->opcode = OPCODE_CALL_REL32;
+        out->operand_type = OPERAND_IMM;
+        out->imm = *((int32_t*)&code[offset]);
+        offset += 4;
+        out->size = offset;
+        return offset;
+    }
+
     return -1;
 }

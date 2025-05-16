@@ -40,6 +40,10 @@ input:
 	gcc -Wall -Wextra -Iinclude -o test_binaries/generate_input test/generate_input.c
 	./test_binaries/generate_input
 
+test-dispatch:
+	gcc -Wall -Wextra -Iinclude -o test_binaries/dispatch_test test/dispatch_test.c src/dispatch.c
+	./test_binaries/dispatch_test
+
 deepfry:
 	@echo "[*] Mutating a clean output.bin..."
 	./build/transform.exe test_binaries/input.bin test_binaries/output.bin 1;
