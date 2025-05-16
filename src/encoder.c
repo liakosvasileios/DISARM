@@ -17,76 +17,76 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
 
     switch (inst->opcode) {
         case OPCODE_MOV_REG_IMM64:
-            EMIT(0xB8 + (inst->op1 & 0x07));
+            EMIT(OPCODE_MOV_REG_IMM64 + (inst->op1 & 0x07));
             memcpy(&out[offset], &inst->imm, 8);
             offset += 8;
             return offset;
 
         case OPCODE_MOV_MEM_REG:
-            EMIT(0x89);
+            EMIT(OPCODE_MOV_MEM_REG);
             EMIT(ENCODE_MODRM(inst->op1, inst->op2));
             return offset;
 
         case OPCODE_MOV_REG_MEM:
-            EMIT(0x8B);
+            EMIT(OPCODE_MOV_REG_MEM);
             EMIT(ENCODE_MODRM(inst->op2, inst->op1));
             return offset;
 
         case OPCODE_ADD_RAX_IMM32:
-            EMIT(0x05);
+            EMIT(OPCODE_ADD_RAX_IMM32);
             memcpy(&out[offset], &inst->imm, 4);
             offset += 4;
             return offset;
 
         case OPCODE_SUB_RAX_IMM32:
-            EMIT(0x2D);
+            EMIT(OPCODE_SUB_RAX_IMM32);
             memcpy(&out[offset], &inst->imm, 4);
             offset += 4;
             return offset;
 
         case OPCODE_XOR_REG_REG:
-            EMIT(0x31);
+            EMIT(OPCODE_XOR_REG_REG);
             EMIT(ENCODE_MODRM(inst->op1, inst->op2));
             return offset;
 
         case OPCODE_PUSH_IMM32:
-            EMIT(0x68);
+            EMIT(OPCODE_PUSH_IMM32);
             memcpy(&out[offset], &inst->imm, 4);
             offset += 4;
             return offset;
 
         case OPCODE_XCHG_REG_REG:
-            EMIT(0x87);
+            EMIT(OPCODE_XCHG_REG_REG);
             EMIT(ENCODE_MODRM(inst->op1, inst->op2));
             return offset;
 
         case OPCODE_MOV_MEM_IMM32:
-            EMIT(0xC7);
-            EMIT(0x04);
-            EMIT(0x24);
+            EMIT(OPCODE_MOV_MEM_IMM32);
+            EMIT(0x04);     // ModR/M Byte, we are about to use a SIB byte
+            EMIT(0x24);     // SIB Byte: 0x24 means: scale = 1, index = none, base = rsp, i.e. [rsp]
             memcpy(&out[offset], &inst->imm, 4);
             offset += 4;
             return offset;
 
         case OPCODE_XOR_REG_IMM32:
-            EMIT(0x81);
+            EMIT(OPCODE_XOR_REG_IMM32);
             EMIT(ENCODE_MODRM(inst->op1, 6));
             memcpy(&out[offset], &inst->imm, 4);
             offset += 4;
             return offset;
 
         case OPCODE_ADD_REG_REG:
-            EMIT(0x01);
+            EMIT(OPCODE_ADD_REG_REG);
             EMIT(ENCODE_MODRM(inst->op1, inst->op2));
             return offset;
 
         case OPCODE_SUB_REG_REG:
-            EMIT(0x29);
+            EMIT(OPCODE_SUB_REG_REG);
             EMIT(ENCODE_MODRM(inst->op1, inst->op2));
             return offset;
 
         case OPCODE_TEST_REG8_REG8:
-            EMIT(0x84);
+            EMIT(OPCODE_TEST_REG8_REG8);
             EMIT(ENCODE_MODRM(inst->op1, inst->op2));
             return offset;
 
