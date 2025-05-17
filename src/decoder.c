@@ -217,6 +217,19 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         out->size = offset;
         return offset;
     }
+    // FIX FIX FIX FIX FIX FIX
+    if (opcode == 0xFF) {
+    uint8_t modrm = code[offset++];
+    if (((modrm >> 3) & 0x07) == 2 && (modrm >> 6) == 3) {
+        out->opcode = OPCODE_CALL_RM64;
+        out->operand_type = OPERAND_REG;
+        out->op1 = modrm & 0x07;
+        if (rex & 0x01) out->op1 |= 0x08;
+        out->rex = rex;
+        out->size = offset;
+        return offset;
+    }
+}
 
     return -1; // Unknown instruction
 }

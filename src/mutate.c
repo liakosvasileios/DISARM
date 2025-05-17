@@ -323,7 +323,7 @@ static int mutate_call_virtual_dispatch(const struct Instruction *input, struct 
             .opcode = 0xFF,
             .operand_type = OPERAND_MEM,
             .op1 = RAX_REG,
-            .rex = 0x48
+            .rex = 0x00
         };
 
         out_list[0] = mov_ecx;
