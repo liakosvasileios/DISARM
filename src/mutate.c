@@ -301,17 +301,17 @@ static int mutate_call_virtual_dispatch(const struct Instruction *input, struct 
 
         // mov ecx, vindex
         struct Instruction mov_ecx = {
-            .opcode = OPCODE_MOV_REG_IMM64,
+            .opcode = OPCODE_MOV_REG_IMM64,     // mov reg, imm32
             .operand_type = OPERAND_REG | OPERAND_IMM,
-            .op1 = RCX_REG,
+            .op1 = ECX_REG,
             .imm = vindex,
-            .rex = 0x48
+            .rex = 0x00
         };
 
         // mov rax, [rip+offset_to_table] or [dispatch_table + rcx*8]
         // For now, emit fake value and patch later
         struct Instruction mov_rax = {
-            .opcode = 0x8B,  // MOV r64, m64
+            .opcode = 0x8B,  // MOV r64, [reg]
             .operand_type = OPERAND_REG | OPERAND_MEM,
             .op1 = RAX_REG,
             .op2 = RCX_REG,  // indirect via RCX
@@ -371,7 +371,7 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
     if ((n = mutate_jcc_near(input, out_list))) return n;
 
     // Virtual Call
-    if ((n = mutate_virtual_call(input, out_list))) return n;
+    if ((n = mutate_call_virtual_dispatch(input, out_list))) return n;
 
     // Unsupported/Invalid Instruction
     return 0;   

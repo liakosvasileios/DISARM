@@ -77,10 +77,11 @@ enum Register8 {
 // ====================================================================================================
 
 // MOV
-#define OPCODE_MOV_REG_IMM64  0xB8  // B8+rd    
+#define OPCODE_MOV_REG_IMM64  0xB8  // B8+rd id
 #define OPCODE_MOV_MEM_REG    0x89  // 89 /r
 #define OPCODE_MOV_REG_MEM    0x8B  // 8B /r
 #define OPCODE_MOV_MEM_IMM32  0xC7  // C7 04 24
+#define OPCODE_MOV_REG32_IMM32 0xB9 // B9
 
 // ARITHMETIC
 #define OPCODE_ADD_RAX_IMM32  0x05  // 05 id

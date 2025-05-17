@@ -7,26 +7,41 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
     int offset = 0;
     memset(out, 0, sizeof(struct Instruction));
 
-    if ((code[0] & 0xF0) == 0x40) {
-        out->rex = code[0];
+    // Step 1: Optional REX prefix
+    if ((code[offset] & 0xF0) == 0x40) {
+        out->rex = code[offset];
         offset++;
     }
 
+    // Step 2: Opcode
     uint8_t opcode = code[offset++];
 
-    switch (opcode) {
-        case OPCODE_MOV_REG_IMM64: {
-            uint8_t reg = opcode - OPCODE_MOV_REG_IMM64;
-            if (out->rex & 0x01) reg |= 0x08;
-            out->opcode = OPCODE_MOV_REG_IMM64;
-            out->operand_type = OPERAND_REG | OPERAND_IMM;
-            out->op1 = reg;
-            out->imm = *((uint32_t*)&code[offset]);
+    // Step 3: Handle MOV r32/r64, imm separately
+    if ((opcode >= 0xB8) && (opcode <= 0xBF)) {
+        uint8_t reg = opcode - 0xB8;
+        if (out->rex & 0x01) reg |= 0x08; // REX.B for r8–r15
+
+        out->opcode = 0xB8;
+        out->operand_type = OPERAND_REG | OPERAND_IMM;
+        out->op1 = reg;
+
+        if (out->rex == 0x48) {
+            // MOV r64, imm64
+            out->imm = *((uint64_t *)&code[offset]);
             offset += 8;
-            out->size = offset;
-            return offset;
+        } else {
+            // MOV r32, imm32
+            out->imm = *((uint32_t *)&code[offset]);
+            offset += 4;
         }
 
+        out->size = offset;
+        return offset;
+    }
+
+    // -------------------
+    // Handle other opcodes
+    switch (opcode) {
         case OPCODE_MOV_MEM_REG: {
             FETCH_MODRM();
             APPLY_REX_BITS();
@@ -162,14 +177,16 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         }
     }
 
+    // JCC short form
     if (opcode >= OPCODE_JCC_SHORT_MIN && opcode <= OPCODE_JCC_SHORT_MAX) {
         out->opcode = opcode;
         out->operand_type = OPERAND_IMM;
         out->imm = (int8_t)code[offset++];
         out->size = offset;
-        return out->size;
+        return offset;
     }
 
+    // JCC near form
     if (opcode == OPCODE_JCC_NEAR) {
         uint8_t ext = code[offset++];
         if (ext >= 0x80 && ext <= 0x8F) {
@@ -191,6 +208,7 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         }
     }
 
+    // CALL rel32
     if (opcode == OPCODE_CALL_REL32) {
         out->opcode = OPCODE_CALL_REL32;
         out->operand_type = OPERAND_IMM;
@@ -200,5 +218,5 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         return offset;
     }
 
-    return -1;
+    return -1; // Unknown instruction
 }

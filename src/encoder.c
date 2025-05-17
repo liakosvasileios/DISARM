@@ -8,7 +8,7 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
 
     if (inst->rex) {
         EMIT(inst->rex);
-    } else if ((inst->op1 >= 8 || inst->op2 >= 8) || (inst->opcode == OPCODE_MOV_REG_IMM64 || inst->opcode == OPCODE_ADD_RAX_IMM32)) {
+    } else if ((inst->op1 >= 8 || inst->op2 >= 8) || inst->opcode == OPCODE_ADD_RAX_IMM32) {
         uint8_t rex = 0x48;
         if (inst->op1 >= 8) rex |= 0x01;
         if (inst->op2 >= 8) rex |= 0x04;
@@ -16,11 +16,26 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
     }
 
     switch (inst->opcode) {
-        case OPCODE_MOV_REG_IMM64:
-            EMIT(OPCODE_MOV_REG_IMM64 + (inst->op1 & 0x07));
-            memcpy(&out[offset], &inst->imm, 8);
-            offset += 8;
-            return offset;
+       case 0xB8:  // MOV reg, imm
+            if (inst->operand_type == (OPERAND_REG | OPERAND_IMM)) {
+                uint8_t reg = inst->op1 & 0x07;
+                // Detect whether it’s a 64-bit or 32-bit move
+                if (inst->rex == 0x48) {
+                    // MOV r64, imm64
+                    EMIT(0xB8 + reg);
+                    memcpy(&out[offset], &inst->imm, 8);
+                    offset += 8;
+                } else {
+                    // MOV r32, imm32
+                    if (inst->op1 >= 8) {
+                        EMIT(0x41); // REX.B
+                    }
+                    EMIT(0xB8 + reg);
+                    memcpy(&out[offset], &inst->imm, 4);
+                    offset += 4;
+                }
+                return offset;
+            }
 
         case OPCODE_MOV_MEM_REG:
             EMIT(OPCODE_MOV_MEM_REG);
@@ -90,7 +105,7 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
             EMIT(ENCODE_MODRM(inst->op1, inst->op2));
             return offset;
 
-        case 0xFF:
+        case OPCODE_CALL_RM64:
             if (inst->operand_type == OPERAND_MEM) {
                 EMIT(0xFF);
                 EMIT(ENCODE_MODRM(0, inst->op1));  // /2 = CALL, reg = 010b = 0
