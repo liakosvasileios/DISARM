@@ -44,6 +44,10 @@ test-dispatch:
 	gcc -Wall -Wextra -Iinclude -o test_binaries/dispatch_test test/dispatch_test.c src/dispatch.c
 	./test_binaries/dispatch_test
 
+jit: 
+	gcc -Wall -Wextra -Iinclude -o build/jit test/jit.c src/dispatch.c src/decoder.c src/encoder.c
+	./build/jit
+
 deepfry:
 	@echo "[*] Mutating a clean output.bin..."
 	./build/transform.exe test_binaries/input.bin test_binaries/output.bin 1;

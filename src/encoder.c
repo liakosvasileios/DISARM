@@ -105,10 +105,13 @@ int encode_instruction(const struct Instruction *inst, uint8_t *out) {
             EMIT(ENCODE_MODRM(inst->op1, inst->op2));
             return offset;
 
-        case OPCODE_CALL_RM64:
-            if (inst->operand_type == OPERAND_MEM) {
+        case OPCODE_CALL_R64:
+            if (inst->operand_type == OPERAND_REG) {
+                uint8_t rex = 0x48;
+                if (inst->op1 >= 8) rex |= 0x01;
+                // EMIT(rex);
                 EMIT(0xFF);
-                EMIT(ENCODE_MODRM(0, inst->op1));  // /2 = CALL, reg = 010b = 0
+                EMIT(0xD0 | (inst->op1 & 0x07));  // /2 CALL + reg
                 return offset;
             }
             break;

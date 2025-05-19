@@ -1,4 +1,3 @@
-// dispatch.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -7,10 +6,10 @@
 #define MAX_FUNCS 4
 
 // Example test functions
-void vfunc0(void* ctx) { puts("FUNC 0"); }
-void vfunc1(void* ctx) { puts("FUNC 1"); }
-void vfunc2(void* ctx) { puts("FUNC 2"); }
-void vfunc3(void* ctx) { puts("FUNC 3"); }
+__declspec(noinline) void __cdecl vfunc0(void* ctx) { puts("FUNC 0"); }
+__declspec(noinline) void __cdecl vfunc1(void* ctx) { puts("FUNC 1"); }
+__declspec(noinline) void __cdecl vfunc2(void* ctx) { puts("FUNC 2"); }
+__declspec(noinline) void __cdecl vfunc3(void* ctx) { puts("FUNC 3"); }
 
 static void (*real_funcs[MAX_FUNCS])(void*);
 static uint8_t index_table[MAX_FUNCS];

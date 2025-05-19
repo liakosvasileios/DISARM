@@ -12,7 +12,7 @@ struct Instruction{
     uint8_t operand_type;       // Operand types byte
     uint8_t op1;                // First operand (could be register ID, memory base reg, etc.)
     uint8_t op2;                // Second operand (same format as the first operand)
-    uint32_t imm;               // Immediate or displacement value
+    uint64_t imm;               // Immediate or displacement value
     uint8_t size;               // Total size in bytes when reassembled
     uint8_t rex;                // REX prefix byte (0x40-0x4F for x86_64)
 
@@ -45,7 +45,7 @@ enum Register64 {
     R12_REG, R13_REG, R14_REG, R15_REG,
 
     // Special pseudo-register
-    REG_NONE = 0xFF     // No register sentinel
+    REG_INVALID = 0xFF     // No register sentinel
 };
 
 enum Register32 {
@@ -116,6 +116,6 @@ enum Register8 {
 
 // CALL
 #define OPCODE_CALL_REL32     0xE8  // E8 id
-#define OPCODE_CALL_RM64      0xFF  // FF /2
+#define OPCODE_CALL_R64      0xFF  // FF /2
 
 #endif // ISA_H

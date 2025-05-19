@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "stdint.h": "c",
-        "isa.h": "c"
+        "isa.h": "c",
+        "string.h": "c"
     }
 }

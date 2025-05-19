@@ -318,10 +318,10 @@ static int mutate_call_virtual_dispatch(const struct Instruction *input, struct 
             .rex = 0x48
         };
 
-        // call rax
+        // call [rax]
         struct Instruction call_rax = {
-            .opcode = 0xFF,
-            .operand_type = OPERAND_MEM,
+            .opcode = OPCODE_CALL_R64,     // call [r64]
+            .operand_type = OPERAND_REG,
             .op1 = RAX_REG,
             .rex = 0x00
         };
