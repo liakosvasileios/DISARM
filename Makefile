@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Iinclude
 
 # Source files
-SRC = src/transformer.c src/mutate.c src/decoder.c src/encoder.c src/mba.c
+SRC = src/transformer.c src/mutate.c src/decoder.c src/encoder.c src/mba.c src/jit.c src/dispatch.c
 TEST_SRC = src/decoder.c src/encoder.c test/test_decode_1.c 
 
 # Output binaries
@@ -45,7 +45,7 @@ test-dispatch:
 	./test_binaries/dispatch_test
 
 jit: 
-	gcc -Wall -Wextra -Iinclude -o build/jit test/jit.c src/dispatch.c src/decoder.c src/encoder.c
+	gcc -Wall -Wextra -Iinclude -o build/jit src/jit.c src/dispatch.c src/decoder.c src/encoder.c
 	./build/jit
 
 deepfry:

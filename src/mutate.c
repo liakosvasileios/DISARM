@@ -2,6 +2,7 @@
 #include "mba.h"
 #include <stdio.h>
 #include "patterns.h"
+#include "jit.h"
 
 /*
     Supported instrutions:
@@ -295,45 +296,78 @@ static int mutate_jcc_near(const struct Instruction *input, struct Instruction *
     return 0;
 }
 
-static int mutate_call_virtual_dispatch(const struct Instruction *input, struct Instruction *out_list) {
+static int mutate_call_jit_virtual(const struct Instruction *input, struct Instruction *out_list) {
     if (IS_CALL_REL32(input) && CHANCE(PERC)) {
-        uint8_t vindex = rand() % 4;
+        static int emitted = 0;
+        static void *jit_mem = NULL;
 
-        // mov ecx, vindex
-        struct Instruction mov_ecx = {
-            .opcode = OPCODE_MOV_REG_IMM64,     // mov reg, imm32
-            .operand_type = OPERAND_REG | OPERAND_IMM,
-            .op1 = ECX_REG,
-            .imm = vindex,
-            .rex = 0x00
-        };
+        if (!emitted) {
+            void **table = get_dispatch_base();
+            jit_mem = alloc_executable(64);
+            emit_virtual_call((uint8_t *)jit_mem, 3, table);
+            emitted = 1;
+        }
 
-        // mov rax, [rip+offset_to_table] or [dispatch_table + rcx*8]
-        // For now, emit fake value and patch later
-        struct Instruction mov_rax = {
-            .opcode = 0x8B,  // MOV r64, [reg]
-            .operand_type = OPERAND_REG | OPERAND_MEM,
-            .op1 = RAX_REG,
-            .op2 = RCX_REG,  // indirect via RCX
-            .rex = 0x48
-        };
+        // Create an indirect call to the JIT buffer (like: mov rax, imm64; call rax)
+        struct Instruction mov_rax = {0};
+        mov_rax.opcode = OPCODE_MOV_REG_IMM64;
+        mov_rax.operand_type = OPERAND_REG | OPERAND_IMM;
+        mov_rax.op1 = RAX_REG;
+        mov_rax.imm = (uint64_t)(uintptr_t)jit_mem;
+        mov_rax.rex = 0x48;
 
-        // call [rax]
-        struct Instruction call_rax = {
-            .opcode = OPCODE_CALL_R64,     // call [r64]
-            .operand_type = OPERAND_REG,
-            .op1 = RAX_REG,
-            .rex = 0x00
-        };
+        struct Instruction call_rax = {0};
+        call_rax.opcode = OPCODE_CALL_R64;
+        call_rax.operand_type = OPERAND_REG;
+        call_rax.op1 = RAX_REG;
 
-        out_list[0] = mov_ecx;
-        out_list[1] = mov_rax;
-        out_list[2] = call_rax;
+        out_list[0] = mov_rax;
+        out_list[1] = call_rax;
 
-        return 3;
+        return 2;
     }
     return 0;
 }
+
+// static int mutate_call_virtual_dispatch(const struct Instruction *input, struct Instruction *out_list) {
+//     if (IS_CALL_REL32(input) && CHANCE(PERC)) {
+//         uint8_t vindex = rand() % 4;
+
+//         // mov ecx, vindex
+//         struct Instruction mov_ecx = {
+//             .opcode = OPCODE_MOV_REG_IMM64,     // mov reg, imm32
+//             .operand_type = OPERAND_REG | OPERAND_IMM,
+//             .op1 = ECX_REG,
+//             .imm = vindex,
+//             .rex = 0x00
+//         };
+
+//         // mov rax, [rip+offset_to_table] or [dispatch_table + rcx*8]
+//         // For now, emit fake value and patch later
+//         struct Instruction mov_rax = {
+//             .opcode = 0x8B,  // MOV r64, [reg]
+//             .operand_type = OPERAND_REG | OPERAND_MEM,
+//             .op1 = RAX_REG,
+//             .op2 = RCX_REG,  // indirect via RCX
+//             .rex = 0x48
+//         };
+
+//         // call [rax]
+//         struct Instruction call_rax = {
+//             .opcode = OPCODE_CALL_R64,     // call [r64]
+//             .operand_type = OPERAND_REG,
+//             .op1 = RAX_REG,
+//             .rex = 0x00
+//         };
+
+//         out_list[0] = mov_ecx;
+//         out_list[1] = mov_rax;
+//         out_list[2] = call_rax;
+
+//         return 3;
+//     }
+//     return 0;
+// }
 
 void mutate_opcode(struct Instruction *inst) {
 
@@ -371,7 +405,7 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
     if ((n = mutate_jcc_near(input, out_list))) return n;
 
     // Virtual Call
-    if ((n = mutate_call_virtual_dispatch(input, out_list))) return n;
+    if ((n = mutate_call_jit_virtual(input, out_list))) return n;
 
     // Unsupported/Invalid Instruction
     return 0;   

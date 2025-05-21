@@ -1,8 +1,4 @@
-#include <windows.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include "engine.h"
+#include "jit.h"
 
 void* alloc_executable(size_t size) {
     printf("[*] Allocating %zu bytes of executable memory...\n", size);
@@ -141,35 +137,35 @@ void emit_direct_call(uint8_t* out, void* target_func) {
 }
 
 
-int main() {
-    printf("[*] Initializing dispatch table (deterministic)...\n");
-    init_dispatch_table(0);
+// int main() {
+//     printf("[*] Initializing dispatch table (deterministic)...\n");
+//     init_dispatch_table(0);
 
-    void **table = get_dispatch_base();
-    printf("[+] Dispatch table base: %p\n", table);
-    for (int i = 0; i < 4; ++i) {
-        printf("    [%d] = %p\n", i, table[i]);
-    }
+//     void **table = get_dispatch_base();
+//     printf("[+] Dispatch table base: %p\n", table);
+//     for (int i = 0; i < 4; ++i) {
+//         printf("    [%d] = %p\n", i, table[i]);
+//     }
 
-    printf("[*] Preparing JIT memory...\n");
-    uint8_t* jit = alloc_executable(64);
-    if (!jit) return 1;
+//     printf("[*] Preparing JIT memory...\n");
+//     uint8_t* jit = alloc_executable(64);
+//     if (!jit) return 1;
 
-    printf("[*] Emitting instructions...\n");
-    emit_virtual_call(jit, 3, table); // index 3 = FUNC 3
+//     printf("[*] Emitting instructions...\n");
+//     emit_virtual_call(jit, 3, table); // index 3 = FUNC 3
 
-    // printf("[>] Target function at index %d: %p\n", 3, table[3]);
-    // printf("[>] Dereferencing to call: ");
-    // ((void(*)(void*))table[3])(NULL);
-    // puts("[+] Manual call succeeded.");
+//     // printf("[>] Target function at index %d: %p\n", 3, table[3]);
+//     // printf("[>] Dereferencing to call: ");
+//     // ((void(*)(void*))table[3])(NULL);
+//     // puts("[+] Manual call succeeded.");
 
-    // emit_direct_call(jit, table[3]);
-    // ((void(*)(void*))jit)(NULL);
+//     // emit_direct_call(jit, table[3]);
+//     // ((void(*)(void*))jit)(NULL);
 
-    printf("[*] Executing JIT-generated obfuscated virtual call:\n");
-    ((void(*)(void*))jit)(NULL);
+//     printf("[*] Executing JIT-generated obfuscated virtual call:\n");
+//     ((void(*)(void*))jit)(NULL);
 
-    printf("[*] Freeing JIT memory...\n");
-    VirtualFree(jit, 0, MEM_RELEASE);
-    return 0;
-}
+//     printf("[*] Freeing JIT memory...\n");
+//     VirtualFree(jit, 0, MEM_RELEASE);
+//     return 0;
+// }
