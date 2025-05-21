@@ -8,94 +8,94 @@
 
 void print_instruction(const char *label, struct Instruction *inst) {
     printf("%s:\n", label);
-    printf("  Opcode:        0x%X\n", inst->opcode);
-    printf("  Operand Type:  0x%X\n", inst->operand_type);
-    printf("  op1:           %u\n", inst->op1);
-    printf("  op2:           %u\n", inst->op2);
-    printf("  Immediate:     0x%X\n", inst->imm);
-    printf("  REX Prefix:    0x%02X\n", inst->rex);
-    printf("  Size:          %d bytes\n", inst->size);
+    printf("  Opcode:       0x%X\n", inst->opcode);
+    printf("  Operands:     0x%X\n", inst->operand_type);
+    printf("  op1,op2:      %u, %u\n", inst->op1, inst->op2);
+    printf("  Imm:          0x%llX\n", (unsigned long long)inst->imm);
+    printf("  Disp:         %d\n", inst->disp);
+    printf("  SIB: scale=%u, idx=%u, base=%u\n", inst->scale, inst->index, inst->base);
+    printf("  REX:          0x%02X\n", inst->rex);
+    printf("  Size:         %u bytes\n", inst->size);
     printf("\n");
 }
 
-void test(const char *desc, uint8_t *bytes, size_t len, int verbose) {
-    struct Instruction original, decoded;
-    printf("[*] Testing: %s\n", desc);
-    
-    // Step 1: Decode
-    if (verbose == 1) printf("[*] Decoding original instruction...\n");
+void test(const char *desc, const uint8_t *bytes, size_t len, int verbose) {
+    struct Instruction orig, dec;
 
-    int decoded_size = decode_instruction(bytes, &original);
-    assert(decoded_size > 0);
+    printf("[] Testing %s\n", desc);
 
-    if (verbose == 1) print_instruction("Before mutation", &original);
+    int s1 = decode_instruction(bytes, &orig);
 
-    // Optional mutation step
-    // mutate_opcode(&original);
-    // print_instruction("After mutation", &original);
-
-    // Step 2: Encode
-    uint8_t encoded[15] = {0};
-    int encoded_size = encode_instruction(&original, encoded);
-    assert(encoded_size > 0);
-
-    if (verbose == 1) {
-        printf("Encoded bytes: ");
-        for (int i = 0; i < encoded_size; i++) {
-            printf("%02X ", encoded[i]);
-        }
-        printf("\n");
+    if (verbose) {
+        print_instruction("Original decoded", &orig);
     }
 
-    // Step 3: Decode the encoded bytes again
-    int red_size = decode_instruction(encoded, &decoded);
-    assert(red_size > 0);
+    assert(s1 > 0);
 
-    // Step 4: Compare fields
-    assert(decoded_size == red_size);
-    assert(decoded.opcode == original.opcode);
-    assert(decoded.operand_type == original.operand_type);
-    assert(decoded.rex == original.rex);
-    assert(decoded.op1 == original.op1);
-    assert(decoded.op2 == original.op2);
-    assert(decoded.imm == original.imm);
+    uint8_t enc[64]; 
+    memset(enc, 0, sizeof(enc));
+    int s2 = encode_instruction(&orig, enc);
 
-    printf("[+] Round-trip test passed.\n\n");
+    if (verbose) {
+        print_instruction("Encoded", &orig);
+    }
+
+    assert(s2 > 0);
+
+    int s3 = decode_instruction(enc, &dec);
+
+    if (verbose) {
+        print_instruction("Encoded-Decoded", &dec);
+    }
+
+    assert(s3 > 0);
+
+    assert(s1 == s3);
+    assert(orig.opcode == dec.opcode);
+    assert(orig.operand_type == dec.operand_type);
+    assert(orig.op1 == dec.op1 && orig.op2 == dec.op2);
+    assert(orig.imm == dec.imm);
+    assert(orig.disp == dec.disp);
+    assert(orig.scale == dec.scale);
+    assert(orig.index == dec.index);
+    assert(orig.base == dec.base);
+
+    printf("[+] %s passed.\n\n", desc);
 }
 
 int main() {
     // Manual encode/decode test for mov ecx, 3 (32-bit)
-    struct Instruction original = {
-        .opcode = 0xB8,
-        .operand_type = OPERAND_REG | OPERAND_IMM,
-        .op1 = ECX_REG, // 1
-        .imm = 3,
-        .rex = 0x00
-    };
+    // struct Instruction original = {
+    //     .opcode = 0xB8,
+    //     .operand_type = OPERAND_REG | OPERAND_IMM,
+    //     .op1 = ECX_REG, // 1
+    //     .imm = 3,
+    //     .rex = 0x00
+    // };
 
-    uint8_t encoded[16] = {0};
-    int len = encode_instruction(&original, encoded);
+    // uint8_t encoded[16] = {0};
+    // int len = encode_instruction(&original, encoded);
 
-    if (len <= 0) {
-        printf("Encoding failed!\n");
-        return 1;
-    }
+    // if (len <= 0) {
+    //     printf("Encoding failed!\n");
+    //     return 1;
+    // }
 
-    printf("[*] Encoded Bytes (%d bytes):\n", len);
-    for (int i = 0; i < len; i++) {
-        printf("  %02X", encoded[i]);
-    }
-    printf("\n\n");
+    // printf("[*] Encoded Bytes (%d bytes):\n", len);
+    // for (int i = 0; i < len; i++) {
+    //     printf("  %02X", encoded[i]);
+    // }
+    // printf("\n\n");
 
-    struct Instruction decoded;
-    int decoded_len = decode_instruction(encoded, &decoded);
-    if (decoded_len <= 0) {
-        printf("Decoding failed!\n");
-        return 1;
-    }
+    // struct Instruction decoded;
+    // int decoded_len = decode_instruction(encoded, &decoded);
+    // if (decoded_len <= 0) {
+    //     printf("Decoding failed!\n");
+    //     return 1;
+    // }
 
-    print_instruction("[Original]", &original);
-    print_instruction("[Decoded ]", &decoded);
+    // print_instruction("[Original]", &original);
+    // print_instruction("[Decoded ]", &decoded);
 
     // --- predefined tests ---
     uint8_t mov_rax_imm[] = {0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -105,7 +105,7 @@ int main() {
     test("add rax, 0x0", add_rax_imm, sizeof(add_rax_imm), 0);
 
     uint8_t mov_mem_reg[] = {0x48, 0x89, 0x03};
-    test("mov [rbx], rax", mov_mem_reg, sizeof(mov_mem_reg), 0);
+    test("mov [rbx], rax", mov_mem_reg, sizeof(mov_mem_reg), 1);
 
     uint8_t mov_reg_mem[] = {0x8B, 0x03};
     test("mov eax, [rbx]", mov_reg_mem, sizeof(mov_reg_mem), 0);
@@ -148,6 +148,13 @@ int main() {
 
     uint8_t setne_al[] = {0x0F, 0x95, 0xC0};
     test("setne al", setne_al, sizeof(setne_al), 0);
+
+    // SIB tests:
+    uint8_t sib1[] = {0x48,0x8B,0x04,0xD3};            // mov rax,[rbx+rdx8]
+    test("mov rax,[rbx+rdx8]", sib1, sizeof(sib1), 0);
+
+    uint8_t sib2[] = {0x48,0x8B,0x44,0xD3,0x10};       // mov rax,[rbx+rdx8+0x10]
+    test("mov rax,[rbx+rdx8+0x10]", sib2, sizeof(sib2), 0);
 
     return 0;
 }

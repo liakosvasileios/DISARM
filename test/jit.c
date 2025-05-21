@@ -42,29 +42,29 @@ void emit_virtual_call(uint8_t* out, uint8_t vindex, void** table) {
     printf("\n");
     cursor += len;
 
-    // MOV ECX, vindex
-    struct Instruction mov_ecx = {
+    // MOV EDX, vindex
+    struct Instruction mov_edx = {
         .opcode = 0xB8,
         .operand_type = OPERAND_REG | OPERAND_IMM,
-        .op1 = ECX_REG,
+        .op1 = EDX_REG,
         .imm = vindex,
         .rex = 0x00
     };
 
-    len = encode_instruction(&mov_ecx, cursor);
-    printf("    Encoding: MOV ECX, %u\n", vindex);
+    len = encode_instruction(&mov_edx, cursor);
+    printf("    Encoding: MOV EDX, %u\n", vindex);
     printf("    Bytes: ");
     for (int i = 0; i < len; ++i) printf("%02X ", cursor[i]);
     printf("\n");
     cursor += len;
 
     // MOV RAX, [RBX + RCX * 8]
-    printf("    Encoding: MOV RAX, [RBX + RCX * 8]\n");
+    printf("    Encoding: MOV RAX, [RBX + RDX * 8]\n");
     uint8_t* before = cursor;
     *cursor++ = 0x48;        // REX.W
     *cursor++ = 0x8B;        // MOV r64, r/m64
     *cursor++ = 0x04;        // ModRM: mod=00, reg=000 (RAX), rm=SIB (100)
-    *cursor++ = 0xCB;        // SIB: scale=8, index=RCX (001), base=RBX (011)
+    *cursor++ = 0xD3;        // SIB: scale=8, index=RDX (010), base=RBX (011)
     printf("    Bytes: ");
     for (uint8_t* p = before; p < cursor; ++p) {
         printf("%02X ", *p);
@@ -96,7 +96,7 @@ void emit_virtual_call(uint8_t* out, uint8_t vindex, void** table) {
 
     // Final JIT buffer
     size_t total = cursor - out;
-    printf("    Total JIT bytes emitted: %zu\n", total);
+    printf("    Total JIT bytes emitted: %zu\n", total);    
     printf("    Final JIT buffer: ");
     for (size_t i = 0; i < total; ++i) {
         printf("%02X ", out[i]);
@@ -158,14 +158,13 @@ int main() {
     printf("[*] Emitting instructions...\n");
     emit_virtual_call(jit, 3, table); // index 3 = FUNC 3
 
-    printf("[>] Target function at index %d: %p\n", 3, table[3]);
-    printf("[>] Dereferencing to call: ");
-    ((void(*)(void*))table[3])(NULL);
-    puts("[+] Manual call succeeded.");
+    // printf("[>] Target function at index %d: %p\n", 3, table[3]);
+    // printf("[>] Dereferencing to call: ");
+    // ((void(*)(void*))table[3])(NULL);
+    // puts("[+] Manual call succeeded.");
 
-    emit_direct_call(jit, table[3]);
-    ((void(*)(void*))jit)(NULL);
-
+    // emit_direct_call(jit, table[3]);
+    // ((void(*)(void*))jit)(NULL);
 
     printf("[*] Executing JIT-generated obfuscated virtual call:\n");
     ((void(*)(void*))jit)(NULL);

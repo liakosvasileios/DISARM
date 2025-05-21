@@ -17,7 +17,7 @@ void print_instruction(const char *label, const struct Instruction *inst) {
     printf("  Operand Type:  0x%02X\n", inst->operand_type);
     printf("  op1:           %d\n", inst->op1);
     printf("  op2:           %d\n", inst->op2);
-    printf("  Immediate:     %d (0x%08X)\n", inst->imm, inst->imm);
+    printf("  Immediate:     %lld (0x%08llX)\n", inst->imm, inst->imm);
     printf("  REX Prefix:    0x%02X\n", inst->rex);
     printf("\n");
 }
