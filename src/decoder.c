@@ -20,7 +20,7 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         uint8_t reg = opcode - 0xB8;
         if (rex & 0x01) reg |= 0x08;
         out->opcode      = OPCODE_MOV_REG_IMM64;
-        out->operand_type= OPERAND_REG|OPERAND_IMM;
+        out->operand_type = OPERAND_REG|OPERAND_IMM;
         out->op1         = reg;
         out->rex         = rex;
         if (rex & 0x08) {
@@ -32,10 +32,20 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         return offset;
     }
 
+    // Jcc short-form (1-byte opcode): 0x70–0x7F
+    if (opcode >= 0x70 && opcode <= 0x7F) {
+        out->opcode = opcode;
+        out->operand_type = OPERAND_IMM;
+        out->imm = (int8_t)code[offset++];  // 8-bit relative jump
+        out->rex = rex;
+        out->size = offset;
+        return offset;
+    }
+
     // simple call rel32
     if (opcode == OPCODE_CALL_REL32) {
         out->opcode      = OPCODE_CALL_REL32;
-        out->operand_type= OPERAND_IMM;
+        out->operand_type = OPERAND_IMM;
         out->imm         = *(int32_t*)&code[offset]; offset += 4;
         out->rex         = rex;
         out->size        = offset;
@@ -44,11 +54,13 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
 
     switch (opcode) {
         case OPCODE_MOV_MEM_REG: {
-            FETCH_MODRM(); APPLY_REX_BITS();
+            uint8_t modrm, mod, reg, rm;
+            FETCH_MODRM(); 
+            APPLY_REX_BITS();
             out->opcode       = OPCODE_MOV_MEM_REG;
             out->operand_type = OPERAND_MEM | OPERAND_REG;
             // handle SIB
-            uint8_t mod = (modrm >> 6) & 0x03;
+            mod = (modrm >> 6) & 0x03;
             if (rm == 4 && mod != 3) {
                 FETCH_SIB();
             } else {
@@ -70,14 +82,18 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
             return offset;
         }
         case OPCODE_MOV_REG_MEM: {
-            FETCH_MODRM(); APPLY_REX_BITS();
+            uint8_t modrm, mod, reg, rm;
+            FETCH_MODRM(); 
+            APPLY_REX_BITS();
             out->opcode      = OPCODE_MOV_REG_MEM;
-            out->operand_type= OPERAND_REG|OPERAND_MEM;
-            uint8_t mod = (modrm>>6)&0x03;
+            out->operand_type = OPERAND_REG | OPERAND_MEM;
+            mod = (modrm>>6)&0x03;
             if (rm == 4 && mod != 3) {
                 FETCH_SIB();
             } else {
-                out->scale=0; out->index=REG_INVALID; out->base=rm;
+                out->scale = 0;
+                out->index = REG_INVALID;
+                out->base = rm;
             }
             if (mod == 1) {
                 out->disp = (int8_t)code[offset++];
@@ -110,7 +126,9 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
             return offset;
         }
         case OPCODE_XOR_REG_REG: {
-            FETCH_MODRM(); APPLY_REX_BITS();
+            uint8_t modrm, mod, reg, rm;
+            FETCH_MODRM(); 
+            APPLY_REX_BITS();
             out->opcode      = OPCODE_XOR_REG_REG;
             out->operand_type= OPERAND_REG|OPERAND_REG;
             out->op1         = rm;
@@ -128,7 +146,9 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
             return offset;
         }
         case OPCODE_XCHG_REG_REG: {
-            FETCH_MODRM(); APPLY_REX_BITS();
+            uint8_t modrm, mod, reg, rm;
+            FETCH_MODRM();
+            APPLY_REX_BITS();
             out->opcode      = OPCODE_XCHG_REG_REG;
             out->operand_type= OPERAND_REG|OPERAND_REG;
             out->op1         = rm;
@@ -138,7 +158,9 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
             return offset;
         }
         case OPCODE_XOR_REG_IMM32: {
-            FETCH_MODRM(); APPLY_REX_BITS();
+            uint8_t modrm, mod, reg, rm;
+            FETCH_MODRM(); 
+            APPLY_REX_BITS();
             if (((modrm >> 3)&7) == 6) {
                 out->opcode      = OPCODE_XOR_REG_IMM32;
                 out->operand_type= OPERAND_REG|OPERAND_IMM;
@@ -151,7 +173,9 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
             break;
         }
         case OPCODE_ADD_REG_REG: {
-            FETCH_MODRM(); APPLY_REX_BITS();
+            uint8_t modrm, mod, reg, rm;
+            FETCH_MODRM(); 
+            APPLY_REX_BITS();
             out->opcode      = OPCODE_ADD_REG_REG;
             out->operand_type= OPERAND_REG|OPERAND_REG;
             out->op1         = rm;
@@ -161,7 +185,9 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
             return offset;
         }
         case OPCODE_SUB_REG_REG: {
-            FETCH_MODRM(); APPLY_REX_BITS();
+            uint8_t modrm, mod, reg, rm;
+            FETCH_MODRM();
+            APPLY_REX_BITS();
             out->opcode      = OPCODE_SUB_REG_REG;
             out->operand_type= OPERAND_REG|OPERAND_REG;
             out->op1         = rm;
@@ -171,7 +197,9 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
             return offset;
         }
         case OPCODE_TEST_REG8_REG8: {
-            FETCH_MODRM(); APPLY_REX_BITS();
+            uint8_t modrm, mod, reg, rm;
+            FETCH_MODRM();
+            APPLY_REX_BITS();
             out->opcode      = OPCODE_TEST_REG8_REG8;
             out->operand_type= OPERAND_REG|OPERAND_REG;
             out->op1         = rm;
@@ -209,7 +237,9 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
             return offset;
         }
         case OPCODE_CALL_R64: {
-            FETCH_MODRM(); APPLY_REX_BITS();
+            uint8_t modrm, mod, reg, rm;
+            FETCH_MODRM();
+            APPLY_REX_BITS();
             if (((modrm>>3)&7)==2) {
                 out->opcode      = OPCODE_CALL_R64;
                 out->operand_type= OPERAND_REG;

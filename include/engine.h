@@ -6,20 +6,27 @@
 
 // Codec macros
 
-#define FETCH_MODRM()   uint8_t modrm = code[offset++]; \
-                        uint8_t reg   = (modrm >> 3) & 0x07; \
-                        uint8_t rm    = modrm & 0x07;
+#define FETCH_MODRM() \
+    do { \
+        modrm = code[offset++]; \
+        mod = (modrm >> 6) & 0x03; \
+        reg = (modrm >> 3) & 0x07; \
+        rm  = modrm & 0x07; \
+    } while (0)
+
 
 #define APPLY_REX_BITS()  if (rex & 0x04) reg |= 0x08; \
                           if (rex & 0x01) rm  |= 0x08;
 
-#define FETCH_SIB()      \
-    uint8_t sib = code[offset++];              \
-    out->scale = (sib >> 6) & 0x03;            \
-    out->index = ((sib >> 3) & 0x07)           \
-               | ((rex & 0x02) << 2);           \
-    out->base  = (sib      & 0x07)             \
-               | ((rex & 0x01) << 3);
+#define FETCH_SIB()                         \
+    do {                                    \
+        uint8_t sib = code[offset++];       \
+        out->scale = (sib >> 6) & 0x3;      \
+        out->index = (sib >> 3) & 0x7;      \
+        out->base  = sib & 0x7;             \
+        if (rex & 0x02) out->index |= 0x08; \
+        if (rex & 0x01) out->base  |= 0x08; \
+    } while (0)
 
 #define EMIT(byte)        out[offset++] = (byte)
 

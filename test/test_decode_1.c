@@ -19,6 +19,14 @@ void print_instruction(const char *label, struct Instruction *inst) {
     printf("\n");
 }
 
+void print_bytes(const char *label, const uint8_t *bytes, size_t len) {
+    printf("%s (%zu bytes):\n", label, len);
+    for (size_t i = 0; i < len; i++) {
+        printf("  %02X", bytes[i]);
+    }
+    printf("\n\n");
+}
+
 void test(const char *desc, const uint8_t *bytes, size_t len, int verbose) {
     struct Instruction orig, dec;
 
@@ -28,6 +36,7 @@ void test(const char *desc, const uint8_t *bytes, size_t len, int verbose) {
 
     if (verbose) {
         print_instruction("Original decoded", &orig);
+        print_bytes("Original bytes", bytes, len);
     }
 
     assert(s1 > 0);
@@ -38,6 +47,7 @@ void test(const char *desc, const uint8_t *bytes, size_t len, int verbose) {
 
     if (verbose) {
         print_instruction("Encoded", &orig);
+        print_bytes("Encoded bytes", enc, s2);
     }
 
     assert(s2 > 0);
@@ -46,6 +56,7 @@ void test(const char *desc, const uint8_t *bytes, size_t len, int verbose) {
 
     if (verbose) {
         print_instruction("Encoded-Decoded", &dec);
+        print_bytes("Encoded-Decoded bytes", enc, s3);
     }
 
     assert(s3 > 0);
@@ -105,7 +116,7 @@ int main() {
     test("add rax, 0x0", add_rax_imm, sizeof(add_rax_imm), 0);
 
     uint8_t mov_mem_reg[] = {0x48, 0x89, 0x03};
-    test("mov [rbx], rax", mov_mem_reg, sizeof(mov_mem_reg), 1);
+    test("mov [rbx], rax", mov_mem_reg, sizeof(mov_mem_reg), 0);
 
     uint8_t mov_reg_mem[] = {0x8B, 0x03};
     test("mov eax, [rbx]", mov_reg_mem, sizeof(mov_reg_mem), 0);
@@ -147,7 +158,7 @@ int main() {
     test("test al, al (test r/m8, r8)", test_al_al, sizeof(test_al_al), 0);
 
     uint8_t setne_al[] = {0x0F, 0x95, 0xC0};
-    test("setne al", setne_al, sizeof(setne_al), 0);
+    test("setne al", setne_al, sizeof(setne_al), 1);
 
     // SIB tests:
     uint8_t sib1[] = {0x48,0x8B,0x04,0xD3};            // mov rax,[rbx+rdx8]
