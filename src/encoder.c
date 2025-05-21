@@ -54,6 +54,12 @@ int encode_instruction(const struct Instruction* inst, uint8_t* out) {
         return offset;
     }
 
+    if ((inst->opcode & 0xFF00) == 0x0F00 && (inst->opcode & 0xFF) >= 0x90 && (inst->opcode & 0xFF) <= 0x9F) {
+        EMIT(0x0F);
+        EMIT(inst->opcode & 0xFF);
+        EMIT(ENCODE_MODRM(3, 0, inst->op1)); // reg = condition (ignored), rm = target reg
+        return offset;
+    }
 
     switch (inst->opcode) {
         case OPCODE_MOV_REG_IMM64: {

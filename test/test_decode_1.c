@@ -158,7 +158,7 @@ int main() {
     test("test al, al (test r/m8, r8)", test_al_al, sizeof(test_al_al), 0);
 
     uint8_t setne_al[] = {0x0F, 0x95, 0xC0};
-    test("setne al", setne_al, sizeof(setne_al), 1);
+    test("setne al", setne_al, sizeof(setne_al), 0);
 
     // SIB tests:
     uint8_t sib1[] = {0x48,0x8B,0x04,0xD3};            // mov rax,[rbx+rdx8]

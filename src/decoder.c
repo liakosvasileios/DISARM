@@ -52,6 +52,33 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
         return offset;
     }
 
+    // SETcc / Jcc near
+    if (opcode == 0x0F) {
+        uint8_t ext = code[offset++];
+        // SETcc decoding (0F 90 – 0F 9F)
+        if (ext >= 0x90 && ext <= 0x9F) {
+            uint8_t modrm, mod, reg, rm;
+            FETCH_MODRM();  // reuses macro to get modrm, mod, reg, rm
+            APPLY_REX_BITS();
+
+            out->opcode = (0x0F << 8) | ext;
+            out->operand_type = OPERAND_REG;
+            out->op1 = rm;
+            out->rex = rex;
+            out->size = offset;
+            return offset;
+        }
+        // Jcc near-form (0F 80 – 0F 8F)
+        if (ext >= 0x80 && ext <= 0x8F) {
+            out->opcode       = (0x0F << 8) | ext;     // e.g., 0x0F85
+            out->operand_type = OPERAND_IMM;
+            out->imm          = *(int32_t*)&code[offset]; offset += 4;
+            out->rex          = rex;
+            out->size         = offset;
+            return offset;
+        }
+    }
+
     switch (opcode) {
         case OPCODE_MOV_MEM_REG: {
             uint8_t modrm, mod, reg, rm;
@@ -208,18 +235,19 @@ int decode_instruction(const uint8_t *code, struct Instruction *out) {
             out->size        = offset;
             return offset;
         }
-        case OPCODE_JCC_NEAR: {
-            uint8_t ext = code[offset++];
-            if (ext >= 0x80 && ext <= 0x8F) {
-                out->opcode      = (opcode<<8)|ext;
-                out->operand_type= OPERAND_IMM;
-                out->imm         = *(int32_t*)&code[offset]; offset+=4;
-                out->rex         = rex;
-                out->size        = offset;
-                return offset;
-            }
-            break;
-        }
+        // case OPCODE_JCC_NEAR: {
+        //     uint8_t ext = code[offset++];
+        //     printf("ext: 0x%02X\n", ext);
+        //     if (ext >= 0x80 && ext <= 0x8F) {
+        //         out->opcode      = (opcode<<8)|ext;
+        //         out->operand_type= OPERAND_IMM;
+        //         out->imm         = *(int32_t*)&code[offset]; offset+=4;
+        //         out->rex         = rex;
+        //         out->size        = offset;
+        //         return offset;
+        //     }
+        //     break;
+        // }
         case OPCODE_JMP_REL32: {
             out->opcode      = OPCODE_JMP_REL32;
             out->operand_type= OPERAND_IMM;
