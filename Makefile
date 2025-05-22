@@ -39,6 +39,7 @@ dump:
 input: 
 	gcc -Wall -Wextra -Iinclude -o test_binaries/generate_input test/generate_input.c
 	./test_binaries/generate_input
+	gcc -static -Wl,--strip-all test/generate_pe.c -o test_binaries/test.exe
 
 test-dispatch:
 	gcc -Wall -Wextra -Iinclude -o test_binaries/dispatch_test test/dispatch_test.c src/dispatch.c
@@ -69,5 +70,13 @@ main:
 
 transform:
 	./build/transform.exe test_binaries/input.bin test_binaries/output.bin 0
+
+pe-test:
+	gcc -Wall -Wextra -Iinclude -o build/pe_test src/pe_parser.c test/test_pe_parser.c
+	./build/pe_test test_binaries/test.exe
+
+pe-patch:
+	gcc -Wall -Wextra -Iinclude -o build/patch src/pe_parser.c src/patch_pe_text.c src/decoder.c src/encoder.c src/mutate.c src/jit.c src/dispatch.c
+	./build/patch.exe test_binaries/test.exe test_binaries/test_mut.exe 0 0
 
 .PHONY: all test clean

@@ -100,4 +100,6 @@ typedef struct {
 
 #pragma pack(pop)
 
+int extract_text_section(const char *filename, uint8_t **output, size_t *size, uint32_t *entry_rva);
+
 #endif // PE_STRUCTS_H

@@ -21,6 +21,7 @@ void show_menu() {
         printf("  [6] Run dispatch table test\n");
         printf("  [7] Deepfry output.bin (set n)\n");
         printf("  [8] Dump disassembly\n");
+        printf("  [9] Test PE parser\n");
         printf("  [0] Exit\n");
         printf("> ");
         if (scanf("%d", &choice) != 1) {
@@ -37,6 +38,7 @@ void show_menu() {
             case 6:  system("make test-dispatch"); break;
             case 7:  system("make deepfry n=5"); break;
             case 8:  system("make dump"); break;
+            case 9:  system("make pe-test"); break;
             case 0:  printf(RED "Exiting...\n"); break;
             default: printf("RED Invalid choice.\n"); break;
         }

@@ -405,7 +405,7 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
     if ((n = mutate_jcc_near(input, out_list))) return n;
 
     // Virtual Call
-    if ((n = mutate_call_jit_virtual(input, out_list))) return n;
+    // if ((n = mutate_call_jit_virtual(input, out_list))) return n;
 
     // Unsupported/Invalid Instruction
     return 0;   

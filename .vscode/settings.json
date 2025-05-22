@@ -4,6 +4,8 @@
         "isa.h": "c",
         "string.h": "c",
         "windows.h": "c",
-        "jit.h": "c"
+        "jit.h": "c",
+        "stdlib.h": "c",
+        "pe_structs.h": "c"
     }
 }
