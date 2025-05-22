@@ -63,4 +63,8 @@ deepfry:
 	done; \
 	rm -f test_binaries/tmp_input.bin	
 
+main:
+	gcc -Wall -Wextra -Iinclude -o build/disarm main.c
+	./build/disarm
+
 .PHONY: all test clean
