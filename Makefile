@@ -6,7 +6,7 @@ SRC = src/transformer.c src/mutate.c src/decoder.c src/encoder.c src/mba.c src/j
 TEST_SRC = src/decoder.c src/encoder.c test/test_decode_1.c 
 
 # Output binaries
-OUT = build/transform build/disarm
+OUT = build/transform 
 TEST_OUT = build/test_decode_1.exe
 
 # Default target
@@ -22,7 +22,7 @@ $(TEST_OUT): $(TEST_SRC)
 	$(CC) $(CFLAGS) $(TEST_SRC) -o $(TEST_OUT)
 
 test-mutate:
-	gcc -Wall -Wextra -Iinclude src/decoder.c src/encoder.c src/mutate.c test/test_mutate.c -o build/test_mutate.exe
+	gcc -Wall -Wextra -Iinclude src/decoder.c src/encoder.c src/mutate.c src/jit.c src/dispatch.c test/test_mutate.c -o build/test_mutate.exe
 	./build/test_mutate.exe
 
 clean:
@@ -66,5 +66,8 @@ deepfry:
 main:
 	gcc -Wall -Wextra -Iinclude -o build/disarm src/main.c
 	./build/disarm
+
+transform:
+	./build/transform.exe test_binaries/input.bin test_binaries/output.bin 0
 
 .PHONY: all test clean

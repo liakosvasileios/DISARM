@@ -10,6 +10,7 @@ void wait_enter() {
 void show_menu() {
     int choice;
     do {
+        system("clear");
         print_disarm_banner();
         printf("Select an option:\n");
         printf("  [1] Transform binary\n");
@@ -19,6 +20,7 @@ void show_menu() {
         printf("  [5] Run JIT engine test\n");
         printf("  [6] Run dispatch table test\n");
         printf("  [7] Deepfry output.bin (set n)\n");
+        printf("  [8] Dump disassembly\n");
         printf("  [0] Exit\n");
         printf("> ");
         if (scanf("%d", &choice) != 1) {
@@ -27,13 +29,14 @@ void show_menu() {
         }
 
         switch (choice) {
-            case 1:  system("./build/transform.exe"); break;
-            case 2:  system("./build/test_decode_1.exe"); break;
-            case 3:  system("./build/test_mutate.exe"); break;
-            case 4:  system("./test_binaries/generate_input.exe"); break;
-            case 5:  system("./build/jit.exe"); break;
-            case 6:  system("./test_binaries/dispatch_test.exe"); break;
+            case 1:  system("make transform"); break;
+            case 2:  system("make test-decode"); break;
+            case 3:  system("make test-mutate"); break;
+            case 4:  system("make input"); break;
+            case 5:  system("make jit"); break;
+            case 6:  system("make test-dispatch"); break;
             case 7:  system("make deepfry n=5"); break;
+            case 8:  system("make dump"); break;
             case 0:  printf(RED "Exiting...\n"); break;
             default: printf("RED Invalid choice.\n"); break;
         }
