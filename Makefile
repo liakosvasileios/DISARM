@@ -6,7 +6,7 @@ SRC = src/transformer.c src/mutate.c src/decoder.c src/encoder.c src/mba.c src/j
 TEST_SRC = src/decoder.c src/encoder.c test/test_decode_1.c 
 
 # Output binaries
-OUT = build/transform
+OUT = build/transform build/disarm
 TEST_OUT = build/test_decode_1.exe
 
 # Default target
@@ -64,7 +64,7 @@ deepfry:
 	rm -f test_binaries/tmp_input.bin	
 
 main:
-	gcc -Wall -Wextra -Iinclude -o build/disarm main.c
+	gcc -Wall -Wextra -Iinclude -o build/disarm src/main.c
 	./build/disarm
 
 .PHONY: all test clean
