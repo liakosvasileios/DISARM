@@ -19,6 +19,7 @@ PE Header Layout in File:
   [IMAGE_SECTION_HEADER] × N          <-- starts AFTER optional header
 */
 
+
 int extract_text_section(const char *filename, uint8_t **output, size_t *size, uint32_t *entry_rva) {
     printf("[*] Opening file: %s\n", filename);
     FILE *f = fopen(filename, "rb");

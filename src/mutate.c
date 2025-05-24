@@ -372,13 +372,13 @@ static int mutate_call_jit_virtual(const struct Instruction *input, struct Instr
 void mutate_opcode(struct Instruction *inst) {
 
     // mov reg, 0 => xor reg, reg
-    if (mutate_mov_reg_0(inst)) return;
+    // if (mutate_mov_reg_0(inst)) return;
 
-    // mov r/m64, r64 -> mov r64, r/m64
-    if (mutate_mov_rm64_r64(inst)) return;
+    // // mov r/m64, r64 -> mov r64, r/m64
+    // if (mutate_mov_rm64_r64(inst)) return;
     
-    // xor reg, reg -> mov reg, 0
-    if (mutate_xor_reg_reg(inst)) return;
+    // // xor reg, reg -> mov reg, 0
+    // if (mutate_xor_reg_reg(inst)) return;
 
 }
 
@@ -387,24 +387,24 @@ int mutate_multi(const struct Instruction *input, struct Instruction *out_list, 
 
     int n;
     // push imm32 => sub rsp, 8; mov [rsp], imm32
-    if ((n = mutate_push_imm32(input, out_list))) return n;
+    // if ((n = mutate_push_imm32(input, out_list))) return n;
 
-    // xchg reg, reg -> xor swap trick
-    if ((n = mutate_xchg_reg_reg(input, out_list))) return n;
+    // // xchg reg, reg -> xor swap trick
+    // if ((n = mutate_xchg_reg_reg(input, out_list))) return n;
 
-    // add rax, imm32 => xor decomposition (MBA): mov rcx, imm^mask; xor rcx, mask; add rax, rcx
-    if ((n = mutate_add_rax_imm32(input, out_list))) return n;
+    // // add rax, imm32 => xor decomposition (MBA): mov rcx, imm^mask; xor rcx, mask; add rax, rcx
+    // if ((n = mutate_add_rax_imm32(input, out_list))) return n;
 
-    // sub rax, imm32 => MBA: mov rcx, imm^mask; xor rcx, mask; sub rax, rcx
-    if ((n = mutate_sub_rax_imm32(input, out_list))) return n;
+    // // sub rax, imm32 => MBA: mov rcx, imm^mask; xor rcx, mask; sub rax, rcx
+    // if ((n = mutate_sub_rax_imm32(input, out_list))) return n;
 
-    // mov reg, imm32 => MBA: mov reg, imm^mask; xor reg, mask
-    if ((n = mutate_mov_reg_imm32(input, out_list))) return n;
+    // // mov reg, imm32 => MBA: mov reg, imm^mask; xor reg, mask
+    // if ((n = mutate_mov_reg_imm32(input, out_list))) return n;
 
-    // Jcc near (0F 8x) => SET!cc + TEST + JNZ + JMP
-    if ((n = mutate_jcc_near(input, out_list))) return n;
+    // // Jcc near (0F 8x) => SET!cc + TEST + JNZ + JMP
+    // if ((n = mutate_jcc_near(input, out_list))) return n;
 
-    // Virtual Call
+    // // Virtual Call
     // if ((n = mutate_call_jit_virtual(input, out_list))) return n;
 
     // Unsupported/Invalid Instruction

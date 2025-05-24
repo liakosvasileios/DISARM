@@ -1,12 +1,115 @@
 [*] Starting PE mutation process...
-[*] Seeding RNG deterministically for reproducible mutations...
-[*] Extracting .text section from 'test_binaries/test.exe'...
-[+] .text extracted: 6144 bytes, Entry Point RVA: 0x1410
-[*] Allocating buffer for mutated .text section...
-[*] Starting instruction-by-instruction transformation...
-[+] Finished mutation. Total bytes written: 7507
-[*] Reading original PE file...
-[*] Locating .text section in PE headers...
-    Section 0: '.text'
-[+] Found .text at section 0. Replacing with expanded mutated code (size 7507)...
-[DONE] Wrote patched PE to 'test_binaries/test_mut.exe'
+[*] Extracting .text section...
+[+] Extracted .text: 6144 bytes, Entry RVA: 0x1410
+[*] Mutating instructions...
+[+] Mutation complete: new .text size = 6144 bytes
+
+[BEFORE] PE Header Summary:
+  SizeOfCode:    0x1800
+  SizeOfImage:   0xC000
+  Section 0: '.text'
+    VirtualSize:     0x1770
+    VirtualAddress:  0x1000
+    SizeOfRawData:   0x1800
+    PointerToRaw:    0x400
+  Section 1: '.data'
+    VirtualSize:     0xA0
+    VirtualAddress:  0x3000
+    SizeOfRawData:   0x200
+    PointerToRaw:    0x1C00
+  Section 2: '.rdata'
+    VirtualSize:     0xB58
+    VirtualAddress:  0x4000
+    SizeOfRawData:   0xC00
+    PointerToRaw:    0x1E00
+  Section 3: '.pdata'
+    VirtualSize:     0x228
+    VirtualAddress:  0x5000
+    SizeOfRawData:   0x400
+    PointerToRaw:    0x2A00
+  Section 4: '.xdata'
+    VirtualSize:     0x198
+    VirtualAddress:  0x6000
+    SizeOfRawData:   0x200
+    PointerToRaw:    0x2E00
+  Section 5: '.bss'
+    VirtualSize:     0x180
+    VirtualAddress:  0x7000
+    SizeOfRawData:   0x0
+    PointerToRaw:    0x0
+  Section 6: '.idata'
+    VirtualSize:     0x50C
+    VirtualAddress:  0x8000
+    SizeOfRawData:   0x600
+    PointerToRaw:    0x3000
+  Section 7: '.tls'
+    VirtualSize:     0x10
+    VirtualAddress:  0x9000
+    SizeOfRawData:   0x200
+    PointerToRaw:    0x3600
+  Section 8: '.rsrc'
+    VirtualSize:     0x4E8
+    VirtualAddress:  0xA000
+    SizeOfRawData:   0x600
+    PointerToRaw:    0x3800
+  Section 9: '.reloc'
+    VirtualSize:     0x6C
+    VirtualAddress:  0xB000
+    SizeOfRawData:   0x200
+    PointerToRaw:    0x3E00
+[+] Patching .text: oldRaw=0x1800, newRaw=0x1800; oldVirt=0x1770, newVirt=0x2000
+
+[AFTER] PE Header Summary:
+  SizeOfCode:    0x2000
+  SizeOfImage:   0xC000
+  Section 0: '.text'
+    VirtualSize:     0x2000
+    VirtualAddress:  0x1000
+    SizeOfRawData:   0x1800
+    PointerToRaw:    0x400
+  Section 1: '.data'
+    VirtualSize:     0xA0
+    VirtualAddress:  0x3000
+    SizeOfRawData:   0x200
+    PointerToRaw:    0x1C00
+  Section 2: '.rdata'
+    VirtualSize:     0xB58
+    VirtualAddress:  0x4000
+    SizeOfRawData:   0xC00
+    PointerToRaw:    0x1E00
+  Section 3: '.pdata'
+    VirtualSize:     0x228
+    VirtualAddress:  0x5000
+    SizeOfRawData:   0x400
+    PointerToRaw:    0x2A00
+  Section 4: '.xdata'
+    VirtualSize:     0x198
+    VirtualAddress:  0x6000
+    SizeOfRawData:   0x200
+    PointerToRaw:    0x2E00
+  Section 5: '.bss'
+    VirtualSize:     0x180
+    VirtualAddress:  0x7000
+    SizeOfRawData:   0x0
+    PointerToRaw:    0x0
+  Section 6: '.idata'
+    VirtualSize:     0x50C
+    VirtualAddress:  0x8000
+    SizeOfRawData:   0x600
+    PointerToRaw:    0x3000
+  Section 7: '.tls'
+    VirtualSize:     0x10
+    VirtualAddress:  0x9000
+    SizeOfRawData:   0x200
+    PointerToRaw:    0x3600
+  Section 8: '.rsrc'
+    VirtualSize:     0x4E8
+    VirtualAddress:  0xA000
+    SizeOfRawData:   0x600
+    PointerToRaw:    0x3800
+  Section 9: '.reloc'
+    VirtualSize:     0x6C
+    VirtualAddress:  0xB000
+    SizeOfRawData:   0x200
+    PointerToRaw:    0x3E00
+[DONE] Wrote 'test_binaries/test_mut.exe' (fileSize=0x4000, imageSize=0xC000)

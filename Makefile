@@ -79,4 +79,8 @@ pe-patch:
 	gcc -Wall -Wextra -Iinclude -o build/patch src/pe_parser.c src/patch_pe_text.c src/decoder.c src/encoder.c src/mutate.c src/jit.c src/dispatch.c
 	./build/patch.exe test_binaries/test.exe test_binaries/test_mut.exe 0 0
 
+patch:
+	gcc -Wall -Wextra -Iinclude -o build/patcher src/pe_parser.c src/patch_pe_text.c test/test_pe_parser.c
+	./build/patcher.exe test_binaries/test.exe
+
 .PHONY: all test clean

@@ -40,7 +40,7 @@ void show_menu() {
             case 8:  system("make dump"); break;
             case 9:  system("make pe-test"); break;
             case 0:  printf(RED "Exiting...\n"); break;
-            default: printf("RED Invalid choice.\n"); break;
+            default: printf(RED "Invalid choice.\n"); break;
         }
 
         if (choice != 0) wait_enter();

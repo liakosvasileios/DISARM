@@ -1,0 +1,222 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <time.h>
+
+#include "pe_structs.h"
+#include "engine.h"
+#include "mutate.h"
+#include "isa.h"
+
+#define MAX_INST_SIZE 15
+#define MAX_MUTATED 4
+
+int verbose = 0;
+FILE *log_file = NULL;
+
+#define logf(...) do { \
+    if (log_file) fprintf(log_file, __VA_ARGS__); \
+    if (!verbose) printf(__VA_ARGS__); \
+} while (0)
+
+static uint32_t align_up(uint32_t value, uint32_t alignment) {
+    return (value + alignment - 1) & ~(alignment - 1);
+}
+
+void print_instruction(const char *label, struct Instruction *inst) {
+    logf("%s:\n", label);
+    logf("  Opcode:       0x%X\n", inst->opcode);
+    logf("  Operands:     0x%X\n", inst->operand_type);
+    logf("  op1,op2:      %u, %u\n", inst->op1, inst->op2);
+    logf("  Imm:          0x%llX\n", (unsigned long long)inst->imm);
+    logf("  Disp:         %d\n", inst->disp);
+    logf("  SIB: scale=%u, idx=%u, base=%u\n", inst->scale, inst->index, inst->base);
+    logf("  REX:          0x%02X\n", inst->rex);
+    logf("  Size:         %u bytes\n\n", inst->size);
+}
+
+int main(int argc, char *argv[]) {
+    if (argc != 5) {
+        fprintf(stderr, "Usage: %s <input_pe.exe> <output_pe.exe> <0=deterministic,1=random> <1=file-only,0=console+file>\n", argv[0]);
+        return 1;
+    }
+
+    const char *input_pe = argv[1];
+    const char *output_pe = argv[2];
+    int randomize = atoi(argv[3]);
+    verbose = atoi(argv[4]);
+
+    log_file = fopen("patch_log.txt", "w");
+    if (!log_file) { perror("[x] Could not open log"); return 1; }
+    logf("[*] Starting PE mutation process...\n");
+
+    srand(randomize ? (unsigned)time(NULL) : 1);
+
+    // Extract .text
+    logf("[*] Extracting .text section...\n");
+    uint8_t *text_data = NULL;
+    size_t text_size = 0;
+    uint32_t entry_rva = 0;
+    if (extract_text_section(input_pe, &text_data, &text_size, &entry_rva) != 0) {
+        fprintf(stderr, "[x] Failed to extract .text\n");
+        return 1;
+    }
+    logf("[+] Extracted .text: %zu bytes, Entry RVA: 0x%X\n", text_size, entry_rva);
+
+    // Mutate .text
+    uint8_t *mutated = malloc(text_size * 2);
+    if (!mutated) { perror("malloc"); free(text_data); return 1; }
+    memset(mutated, 0x90, text_size * 2);
+    logf("[*] Mutating instructions...\n");
+    size_t offset = 0, write_offset = 0;
+    while (offset < text_size) {
+        struct Instruction inst;
+        int decoded = decode_instruction(text_data + offset, &inst);
+        if (decoded <= 0) {
+            mutated[write_offset++] = text_data[offset++];
+            continue;
+        }
+        struct Instruction backup = inst;
+        mutate_opcode(&inst);
+        int changed = memcmp(&inst, &backup, sizeof(inst));
+        uint8_t encoded[MAX_INST_SIZE] = {0};
+        int len = encode_instruction(changed ? &inst : &backup, encoded);
+        if (changed) {
+            logf("Mutation at 0x%lX:\n", offset);
+            print_instruction("Original", &backup);
+            print_instruction("Mutated", &inst);
+        }
+        if (len <= 0 || len > decoded) len = decoded;
+        memcpy(mutated + write_offset, encoded, len);
+        write_offset += len;
+        while ((int)write_offset < (int)(offset + decoded)) {
+            mutated[write_offset++] = 0x90;
+        }
+        offset += decoded;
+    }
+    logf("[+] Mutation complete: new .text size = %zu bytes\n", write_offset);
+
+    // Read full PE
+    FILE *f_in = fopen(input_pe, "rb");
+    if (!f_in) { perror("fopen"); return 1; }
+    fseek(f_in, 0, SEEK_END);
+    size_t pe_size = ftell(f_in);
+    rewind(f_in);
+    uint8_t *pe_buf = malloc(pe_size + text_size);
+    fread(pe_buf, 1, pe_size, f_in);
+    fclose(f_in);
+
+    // Locate headers
+    IMAGE_DOS_HEADER *dos = (IMAGE_DOS_HEADER *)pe_buf;
+    IMAGE_NT_HEADERS64 *nt = (IMAGE_NT_HEADERS64 *)(pe_buf + dos->e_lfanew);
+    IMAGE_SECTION_HEADER *sections = (IMAGE_SECTION_HEADER *)((uint8_t *)&nt->OptionalHeader + nt->FileHeader.SizeOfOptionalHeader);
+
+    uint32_t fileAlign = nt->OptionalHeader.FileAlignment;
+    uint32_t sectAlign = nt->OptionalHeader.SectionAlignment;
+    size_t new_pe_size = pe_size;
+    uint32_t maxImageVA = 0;
+
+    // --- Print headers before mutation ---
+    logf("\n[BEFORE] PE Header Summary:\n");
+    logf("  SizeOfCode:    0x%X\n", nt->OptionalHeader.SizeOfCode);
+    logf("  SizeOfImage:   0x%X\n", nt->OptionalHeader.SizeOfImage);
+    for (int i = 0; i < nt->FileHeader.NumberOfSections; i++) {
+        char name[9] = {0}; memcpy(name, sections[i].Name, 8);
+        logf("  Section %d: '%s'\n", i, name);
+        logf("    VirtualSize:     0x%X\n", sections[i].Misc.VirtualSize);
+        logf("    VirtualAddress:  0x%X\n", sections[i].VirtualAddress);
+        logf("    SizeOfRawData:   0x%X\n", sections[i].SizeOfRawData);
+        logf("    PointerToRaw:    0x%X\n", sections[i].PointerToRawData);
+    }
+
+    // Patch .text and adjust buffer if expanded
+    size_t patch_offset = 0;
+    for (int i = 0; i < nt->FileHeader.NumberOfSections; i++) {
+        char name[9] = {0}; memcpy(name, sections[i].Name, 8);
+        if (strncmp(name, ".text", 5) == 0) {
+            uint32_t oldRaw = sections[i].SizeOfRawData;
+            uint32_t oldVirt = sections[i].Misc.VirtualSize;
+            uint32_t newRaw = align_up(write_offset, fileAlign);
+            uint32_t newVirt = align_up(write_offset, sectAlign);
+
+            logf("[+] Patching .text: oldRaw=0x%X, newRaw=0x%X; oldVirt=0x%X, newVirt=0x%X\n",
+                oldRaw, newRaw, oldVirt, newVirt);
+
+            size_t diff = (newRaw > oldRaw) ? (newRaw - oldRaw) : 0;
+            size_t original_data_offset = sections[i].PointerToRawData + oldRaw;
+
+            // Compute full PE size and allocate a new buffer
+            size_t newBufSize = pe_size + diff;
+            uint8_t *newBuf = malloc(newBufSize);
+
+            // Copy everything before .text
+            memcpy(newBuf, pe_buf, sections[i].PointerToRawData);
+
+            // Write mutated .text
+            memcpy(newBuf + sections[i].PointerToRawData, mutated, write_offset);
+            memset(newBuf + sections[i].PointerToRawData + write_offset, 0x90, newRaw - write_offset);
+
+            // Shift all later section raw pointers and move their content
+            size_t cursor = sections[i].PointerToRawData + newRaw;
+            for (int j = i + 1; j < nt->FileHeader.NumberOfSections; j++) {
+                size_t old_ptr = sections[j].PointerToRawData;
+                if (old_ptr == 0 || sections[j].SizeOfRawData == 0) continue;
+                memcpy(newBuf + cursor, pe_buf + old_ptr, sections[j].SizeOfRawData);
+                sections[j].PointerToRawData = (uint32_t)cursor;
+                cursor += align_up(sections[j].SizeOfRawData, fileAlign);
+            }
+
+            // Adjust total file size
+            new_pe_size = cursor;
+
+            // Update section header
+            sections[i].SizeOfRawData = newRaw;
+            sections[i].Misc.VirtualSize = newVirt;
+            nt->OptionalHeader.SizeOfCode = newVirt;
+
+            free(pe_buf);
+            pe_buf = newBuf;
+            pe_size = new_pe_size;
+            break;
+        }
+    }
+
+    // Recalculate SizeOfImage
+    maxImageVA = 0;
+    for (int i = 0; i < nt->FileHeader.NumberOfSections; i++) {
+        uint32_t endVA = sections[i].VirtualAddress + align_up(sections[i].Misc.VirtualSize, sectAlign);
+        if (endVA > maxImageVA) maxImageVA = endVA;
+    }
+    nt->OptionalHeader.SizeOfImage = align_up(maxImageVA, sectAlign);
+
+
+    // --- Print headers after mutation ---
+    logf("\n[AFTER] PE Header Summary:\n");
+    logf("  SizeOfCode:    0x%X\n", nt->OptionalHeader.SizeOfCode);
+    logf("  SizeOfImage:   0x%X\n", nt->OptionalHeader.SizeOfImage);
+    IMAGE_SECTION_HEADER *final_sections = (IMAGE_SECTION_HEADER *)((uint8_t *)&nt->OptionalHeader + nt->FileHeader.SizeOfOptionalHeader);
+    for (int i = 0; i < nt->FileHeader.NumberOfSections; i++) {
+        char name[9] = {0}; memcpy(name, final_sections[i].Name, 8);
+        logf("  Section %d: '%s'\n", i, name);
+        logf("    VirtualSize:     0x%X\n", final_sections[i].Misc.VirtualSize);
+        logf("    VirtualAddress:  0x%X\n", final_sections[i].VirtualAddress);
+        logf("    SizeOfRawData:   0x%X\n", final_sections[i].SizeOfRawData);
+        logf("    PointerToRaw:    0x%X\n", final_sections[i].PointerToRawData);
+    }
+
+
+    // Write out new PE
+    FILE *f_out = fopen(output_pe, "wb");
+    if (!f_out) { perror("fopen"); return 1; }
+    fwrite(pe_buf, 1, new_pe_size, f_out);
+    fclose(f_out);
+
+    free(pe_buf);
+    free(mutated);
+    free(text_data);
+    logf("[DONE] Wrote '%s' (fileSize=0x%zX, imageSize=0x%X)\n",
+         output_pe, new_pe_size, nt->OptionalHeader.SizeOfImage);
+    fclose(log_file);
+    return 0;
+}
