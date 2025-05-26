@@ -1,3 +1,4 @@
+
 CC = gcc
 CFLAGS = -Wall -Wextra -Iinclude
 
@@ -10,7 +11,7 @@ OUT = build/transform
 TEST_OUT = build/test_decode_1.exe
 
 # Default target
-all: $(OUT)
+all: $(OUT) final
 
 $(OUT): $(SRC)
 	$(CC) $(CFLAGS) $(SRC) -o $(OUT)
@@ -82,5 +83,19 @@ pe-patch:
 patch:
 	gcc -Wall -Wextra -Iinclude -o build/patcher src/pe_parser.c src/patch_pe_text.c test/test_pe_parser.c
 	./build/patcher.exe test_binaries/test.exe
+
+final:
+	@mkdir -p out
+	x86_64-w64-mingw32-gcc -Iinclude -c src/engine_payload.c -o out/engine_payload.o \
+	  -ffreestanding -nostdlib -fno-unwind-tables -fno-asynchronous-unwind-tables -mno-red-zone
+	x86_64-w64-mingw32-gcc -Iinclude -c src/mutate.c -o out/mutate.o -ffreestanding -nostdlib -mno-red-zone
+	x86_64-w64-mingw32-gcc -Iinclude -c src/decoder.c -o out/decoder.o -ffreestanding -nostdlib -mno-red-zone
+	x86_64-w64-mingw32-gcc -Iinclude -c src/encoder.c -o out/encoder.o -ffreestanding -nostdlib -mno-red-zone
+	x86_64-w64-mingw32-gcc -c src/engine_entry.S -o out/engine_entry.o
+	x86_64-w64-mingw32-gcc -nostdlib -Wl,-Ttext=0x1000 -Wl,-e,_start -Wl,--enable-auto-import \
+	  -lkernel32 -lmsvcrt \
+	  -o out/engine_combined.elf \
+	  out/engine_entry.o out/engine_payload.o out/mutate.o out/decoder.o out/encoder.o
+	x86_64-w64-mingw32-objcopy -O binary out/engine_combined.elf out/engine_payload.bin
 
 .PHONY: all test clean

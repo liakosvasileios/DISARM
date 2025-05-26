@@ -6,6 +6,7 @@
         "windows.h": "c",
         "jit.h": "c",
         "stdlib.h": "c",
-        "pe_structs.h": "c"
+        "pe_structs.h": "c",
+        "mutate.h": "c"
     }
 }
